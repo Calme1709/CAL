@@ -14,12 +14,12 @@ There are 8 registers R0-R7.
 ## Instructions
 |Name|Description|Syntax|0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|Pseudocode
 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
-|ADD|Addition|ADD DR SR0 SR1|0|0|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="3" style="text-align: center">SR1<td>0|0|DR = SR0 + SR1
-|ADDI|Immediate addition|ADDI DR SR0 IMM5|0|0|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 + IMM5
-|SUB|Subtraction|SUB DR SR0 SR1|0|0|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="3" style="text-align: center">SR1</td>|0|0|DR = SR0 - SR1
-|SUBI|Immediate subtraction|SUBI DR SR0 IMM5|0|0|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 - IMM5
-|AND|Bitwise AND|AND DR SR0 SR1|0|0|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="3" style="text-align: center">SR1<td>0|0|DR = SR0 & SR1
-|ANDI|Immediate bitwise AND|ANDI DR SR0 IMM5|0|0|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 & IMM5
+|ADD|Addition|ADD DR SR0 SR1|0|0|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="3" style="text-align: center">SR1<td>0|0|DR = SR0 + SR1
+|ADD|Immediate addition|ADD DR SR0 IMM5|0|0|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 + IMM5
+|SUB|Immediate subtraction|SUB DR SR0 IMM5|0|0|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 - IMM5
+|SUB|Subtraction|SUB DR SR0 SR1|0|0|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="3" style="text-align: center">SR1</td>|0|0|DR = SR0 - SR1
+|AND|Immediate bitwise AND|AND DR SR0 IMM5|0|0|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 & IMM5
+|AND|Bitwise AND|AND DR SR0 SR1|0|0|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="3" style="text-align: center">SR1<td>0|0|DR = SR0 & SR1
 |NOT|Bitwise NOT|NOT DR SR0|0|0|1|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0|0|0|0|0|0|0|DR = ~SR0
 |LSHF|Left shift|LSHF DR SR0 IMM4|0|1|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="4" style="text-align: center">IMM4</td>|0|DR = SR0 << IMM4
 |RSHF|Right shift|RSHF DR SR0 IMM4|0|1|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="4" style="text-align: center">IMM4</td>|0|DR = SR0 >> IMM4
@@ -31,3 +31,8 @@ There are 8 registers R0-R7.
 |CALL|Call subroutine|CALL SR0 OFFSET9|1|0|1|0<td colspan="3" style="text-align: center">SR0</td><td colspan="9" style="text-align: center">OFFSET9</td>|PC = SR0 + OFFSET9 (and push PC onto the call stack)
 |RET|Return from subroutine|RET|1|0|1|1|0|0|0|0|0|0|0|0|0|0|0|0|PC = pop(call stack)
 |HLT|Stop execution|HLT|1|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+
+## Pseudoinstructions
+|Name|Description|Syntax|Implementation|Pseudocode|
+|-|-|-|-|-|
+|NOP|No operation|NOP|ADD R0 R0 0| No operation
