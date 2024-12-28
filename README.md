@@ -12,25 +12,289 @@ The word size of this computer is 16 bits and memory is word addressable.
 There are 8 registers R0-R7.
 
 ## Instructions
-|Name|Description|Syntax|0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|Pseudocode
-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
-|ADD|Addition|ADD DR SR0 SR1|0|0|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="3" style="text-align: center">SR1<td>0|0|DR = SR0 + SR1
-|ADD|Immediate addition|ADD DR SR0 IMM5|0|0|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 + IMM5
-|SUB|Immediate subtraction|SUB DR SR0 IMM5|0|0|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 - IMM5
-|SUB|Subtraction|SUB DR SR0 SR1|0|0|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="3" style="text-align: center">SR1</td>|0|0|DR = SR0 - SR1
-|AND|Immediate bitwise AND|AND DR SR0 IMM5|0|0|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="5" style="text-align: center">IMM5</td>|DR = SR0 & IMM5
-|AND|Bitwise AND|AND DR SR0 SR1|0|0|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="3" style="text-align: center">SR1<td>0|0|DR = SR0 & SR1
-|NOT|Bitwise NOT|NOT DR SR0|0|0|1|1<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0|0|0|0|0|0|0|DR = ~SR0
-|LSHF|Left shift|LSHF DR SR0 IMM4|0|1|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|0<td colspan="4" style="text-align: center">IMM4</td>|0|DR = SR0 << IMM4
-|RSHF|Right shift|RSHF DR SR0 IMM4|0|1|0|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td>|1<td colspan="4" style="text-align: center">IMM4</td>|0|DR = SR0 >> IMM4
-|LEA|Load effective address|LEA OFFSET9|0|1|0|1<td colspan="3" style="text-align: center">DR</td><td colspan="9" style="text-align: center">OFFSET9</td>|DR = PC + OFFSET9
-|LD|Load memory|LD DR SR1 OFFSET6|0|1|1|0<td colspan="3" style="text-align: center">DR</td><td colspan="3" style="text-align: center">SR0</td><td colspan="6" style="text-align: center">OFFSET6|DR = MEM[SR0 + OFFSET6]
-|LDI|Load immediate|LDI DR IMM9|0|1|1|1<td colspan="3" style="text-align: center">DR</td><td colspan="9" style="text-align: center">IMM9</td>|DR = IMM9
-|ST|Store in memory|ST SR0 SR1 OFFSET6|1|0|0|0<td colspan="3" style="text-align: center">SR0</td><td colspan="6" style="text-align: center">OFFSET6</td><td colspan="3" style="text-align: center">SR1</td>|MEM[SR0 + OFFSET6] = SR1
-|BR|Branch|BR [nzp] IMM9|1|0|0|1|n|z|p<td colspan="9" style="text-align: center">OFFSET9</td>|PC = Cond ? (PC + OFFSET9) : PC
-|CALL|Call subroutine|CALL SR0 OFFSET9|1|0|1|0<td colspan="3" style="text-align: center">SR0</td><td colspan="9" style="text-align: center">OFFSET9</td>|PC = SR0 + OFFSET9 (and push PC onto the call stack)
-|RET|Return from subroutine|RET|1|0|1|1|0|0|0|0|0|0|0|0|0|0|0|0|PC = pop(call stack)
-|HLT|Stop execution|HLT|1|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
+
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Syntax</th>
+        <th>0</th>
+        <th>1</th>
+        <th>2</th>
+        <th>3</th>
+        <th>4</th>
+        <th>5</th>
+        <th>6</th>
+        <th>7</th>
+        <th>8</th>
+        <th>9</th>
+        <th>10</th>
+        <th>11</th>
+        <th>12</th>
+        <th>13</th>
+        <th>14</th>
+        <th>15</th>
+        <th>Pseudocode</th>
+    </tr>
+    <tr>
+        <td>ADD</td>
+        <td>Addition</td>
+        <td>ADD DR SR0 SR1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>1</td>
+        <td colspan="3" style="text-align: center">SR1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>DR = SR0 + SR1</td>
+    </tr>
+    <tr>
+        <td>ADD</td>
+        <td>Immediate addition</td>
+        <td>ADD DR SR0 IMM5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>0</td>
+        <td colspan="5" style="text-align: center">IMM5</td>
+        <td>DR = SR0 + IMM5</td>
+    </tr>
+    <tr>
+        <td>SUB</td>
+        <td>Immediate subtraction</td>
+        <td>SUB DR SR0 IMM5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>0
+        <td colspan="5" style="text-align: center">IMM5</td>
+        <td>DR = SR0 - IMM5</td>
+    </tr>
+    <tr>
+        <td>SUB</td>
+        <td>Subtraction</td>
+        <td>SUB DR SR0 SR1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>1
+        <td colspan="3" style="text-align: center">SR1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>DR = SR0 - SR1</td>
+    </tr>
+    <tr>
+        <td>AND</td>
+        <td>Immediate bitwise AND</td>
+        <td>AND DR SR0 IMM5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>0
+        <td colspan="5" style="text-align: center">IMM5</td>
+        <td>DR = SR0 & IMM5</td>
+    </tr>
+    <tr>
+        <td>AND</td>
+        <td>Bitwise AND</td>
+        <td>AND DR SR0 SR1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>1
+        <td colspan="3" style="text-align: center">SR1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>DR = SR0 & SR1</td>
+    </tr>
+    <tr>
+        <td>NOT</td>
+        <td>Bitwise NOT</td>
+        <td>NOT DR SR0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>DR = ~SR0</td>
+    </tr>
+    <tr>
+        <td>LSHF</td>
+        <td>Left shift</td>
+        <td>LSHF DR SR0 IMM4</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>0
+        <td colspan="4" style="text-align: center">IMM4</td>
+        <td>0</td>
+        <td>DR = SR0 << IMM4</td>
+    </tr>
+    <tr>
+        <td>RSHF</td>
+        <td>Right shift</td>
+        <td>RSHF DR SR0 IMM4</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td>1
+        <td colspan="4" style="text-align: center">IMM4</td>
+        <td>0</td>
+        <td>DR = SR0 >> IMM4</td>
+    </tr>
+    <tr>
+        <td>LEA</td>
+        <td>Load effective address</td>
+        <td>LEA OFFSET9</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="9" style="text-align: center">OFFSET9</td>
+        <td>DR = PC + OFFSET9</td>
+    </tr>
+    <tr>
+        <td>LD</td>
+        <td>Load memory</td>
+        <td>LD DR SR1 OFFSET6</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td colspan="6" style="text-align: center">OFFSET6</td>
+        <td>DR = MEM[SR0 + OFFSET6]</td>
+    </tr>
+    <tr>
+        <td>LDI</td>
+        <td>Load immediate</td>
+        <td>LDI DR IMM9</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>1
+        <td colspan="3" style="text-align: center">DR</td>
+        <td colspan="9" style="text-align: center">IMM9</td>
+        <td>DR = IMM9</td>
+    </tr>
+    <tr>
+        <td>ST</td>
+        <td>Store in memory</td>
+        <td>ST SR0 SR1 OFFSET6</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td colspan="6" style="text-align: center">OFFSET6</td>
+        <td colspan="3" style="text-align: center">SR1</td>
+        <td>MEM[SR0 + OFFSET6] = SR1</td>
+    </tr>
+    <tr>
+        <td>BR</td>
+        <td>Branch</td>
+        <td>BR [nzp] IMM9</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>n</td>
+        <td>z</td>
+        <td>p
+        <td colspan="9" style="text-align: center">OFFSET9</td>
+        <td>PC = Cond ? (PC + OFFSET9) : PC</td>
+    </tr>
+    <tr>
+        <td>CALL</td>
+        <td>Call subroutine</td>
+        <td>CALL SR0 OFFSET9</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0
+        <td colspan="3" style="text-align: center">SR0</td>
+        <td colspan="9" style="text-align: center">OFFSET9</td>
+        <td>PC = SR0 + OFFSET9 (and push PC onto the call stack)</td>
+    </tr>
+    <tr>
+        <td>RET</td>
+        <td>Return from subroutine</td>
+        <td>RET</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>PC = pop(call stack)</td>
+    </tr>
+    <tr>
+        <td>HLT</td>
+        <td>Stop execution</td>
+        <td>HLT</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>Stop execution</td>
+    </tr>
+</table>
 
 ## Pseudoinstructions
 |Name|Description|Syntax|Implementation|Pseudocode|
