@@ -1,5 +1,7 @@
 {
-	"image": "mcr.microsoft.com/devcontainers/rust",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": ["rust-lang.rust-analyzer"]
