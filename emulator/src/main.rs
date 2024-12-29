@@ -1,3 +1,4 @@
+mod instructions;
 mod state;
 
 use std::fs;
@@ -13,10 +14,25 @@ fn main() {
     let mut state = State::new();
 
     bytes.chunks(2).enumerate().for_each(|(i, chunk)| {
-        println!("{:?}", chunk);
         let word = u16::from_be_bytes([chunk[0], chunk[1]]);
         state.memory[i] = word;
     });
 
-    println!("{:?}", state);
+    state = run_program(state);
+
+    println!("\n{:?}", state);
+}
+
+fn run_program(mut state: State) -> State {
+    while !state.halt {
+        let instruction = instructions::from_machine_code(state.memory[state.pc as usize]);
+
+        println!("{:?}", instruction);
+
+        instruction.execute(&mut state);
+
+        state.pc += 1;
+    }
+
+    return state;
 }
