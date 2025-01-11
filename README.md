@@ -55,7 +55,7 @@ There are 8 registers R0-R7.
     <tr>
         <td>ADD</td>
         <td>Immediate addition</td>
-        <td>ADD DR SR0 IMM5</td>
+        <td>ADD DR SR0 U5</td>
         <td>0</td>
         <td>0</td>
         <td>0</td>
@@ -63,13 +63,13 @@ There are 8 registers R0-R7.
         <td colspan="3" style="text-align: center">DR</td>
         <td colspan="3" style="text-align: center">SR0</td>
         <td>0</td>
-        <td colspan="5" style="text-align: center">IMM5</td>
-        <td>DR = SR0 + IMM5</td>
+        <td colspan="5" style="text-align: center">U5</td>
+        <td>DR = SR0 + U5</td>
     </tr>
     <tr>
         <td>SUB</td>
         <td>Immediate subtraction</td>
-        <td>SUB DR SR0 IMM5</td>
+        <td>SUB DR SR0 U5</td>
         <td>0</td>
         <td>0</td>
         <td>0</td>
@@ -77,8 +77,8 @@ There are 8 registers R0-R7.
         <td colspan="3" style="text-align: center">DR</td>
         <td colspan="3" style="text-align: center">SR0</td>
         <td>0
-        <td colspan="5" style="text-align: center">IMM5</td>
-        <td>DR = SR0 - IMM5</td>
+        <td colspan="5" style="text-align: center">U5</td>
+        <td>DR = SR0 - U5</td>
     </tr>
     <tr>
         <td>SUB</td>
@@ -99,7 +99,7 @@ There are 8 registers R0-R7.
     <tr>
         <td>AND</td>
         <td>Immediate bitwise AND</td>
-        <td>AND DR SR0 IMM5</td>
+        <td>AND DR SR0 U5</td>
         <td>0</td>
         <td>0</td>
         <td>1</td>
@@ -107,8 +107,8 @@ There are 8 registers R0-R7.
         <td colspan="3" style="text-align: center">DR</td>
         <td colspan="3" style="text-align: center">SR0</td>
         <td>0
-        <td colspan="5" style="text-align: center">IMM5</td>
-        <td>DR = SR0 & IMM5</td>
+        <td colspan="5" style="text-align: center">U5</td>
+        <td>DR = SR0 & U5</td>
     </tr>
     <tr>
         <td>AND</td>
@@ -177,27 +177,27 @@ There are 8 registers R0-R7.
     <tr>
         <td>LEA</td>
         <td>Load effective address</td>
-        <td>LEA OFFSET9</td>
+        <td>LEA I9</td>
         <td>0</td>
         <td>1</td>
         <td>0</td>
         <td>1
         <td colspan="3" style="text-align: center">DR</td>
-        <td colspan="9" style="text-align: center">OFFSET9</td>
-        <td>DR = PC + OFFSET9</td>
+        <td colspan="9" style="text-align: center">I9</td>
+        <td>DR = PC + I9</td>
     </tr>
     <tr>
         <td>LD</td>
         <td>Load memory</td>
-        <td>LD DR SR1 OFFSET6</td>
+        <td>LD DR SR1 I6</td>
         <td>0</td>
         <td>1</td>
         <td>1</td>
         <td>0
         <td colspan="3" style="text-align: center">DR</td>
         <td colspan="3" style="text-align: center">SR0</td>
-        <td colspan="6" style="text-align: center">OFFSET6</td>
-        <td>DR = MEM[SR0 + OFFSET6]</td>
+        <td colspan="6" style="text-align: center">I6</td>
+        <td>DR = MEM[SR0 + I6]</td>
     </tr>
     <tr>
         <td>LDI</td>
@@ -214,15 +214,15 @@ There are 8 registers R0-R7.
     <tr>
         <td>ST</td>
         <td>Store in memory</td>
-        <td>ST SR0 SR1 OFFSET6</td>
+        <td>ST SR0 SR1 I6</td>
         <td>1</td>
         <td>0</td>
         <td>0</td>
         <td>0
         <td colspan="3" style="text-align: center">SR0</td>
-        <td colspan="6" style="text-align: center">OFFSET6</td>
+        <td colspan="6" style="text-align: center">I6</td>
         <td colspan="3" style="text-align: center">SR1</td>
-        <td>MEM[SR0 + OFFSET6] = SR1</td>
+        <td>MEM[SR0 + I6] = SR1</td>
     </tr>
     <tr>
         <td>BR</td>
@@ -235,20 +235,20 @@ There are 8 registers R0-R7.
         <td>n</td>
         <td>z</td>
         <td>p
-        <td colspan="9" style="text-align: center">OFFSET9</td>
-        <td>PC = Cond ? (PC + OFFSET9) : PC</td>
+        <td colspan="9" style="text-align: center">I9</td>
+        <td>PC = Cond ? (PC + I9) : PC</td>
     </tr>
     <tr>
         <td>CALL</td>
         <td>Call subroutine</td>
-        <td>CALL SR0 OFFSET9</td>
+        <td>CALL SR0 I9</td>
         <td>1</td>
         <td>0</td>
         <td>1</td>
         <td>0
         <td colspan="3" style="text-align: center">SR0</td>
-        <td colspan="9" style="text-align: center">OFFSET9</td>
-        <td>PC = SR0 + OFFSET9 (and push PC onto the call stack)</td>
+        <td colspan="9" style="text-align: center">I9</td>
+        <td>PC = SR0 + I9 (and push PC onto the call stack)</td>
     </tr>
     <tr>
         <td>RET</td>

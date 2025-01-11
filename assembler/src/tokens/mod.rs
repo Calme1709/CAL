@@ -7,20 +7,11 @@ pub enum Mnemonic {
     Halt
 }
 
-fn imm5_callback(lexer: &mut Lexer<Token>)-> Result<u16, String> {
-    immediate_callback(5)(lexer)
-}
-
 // TODO: Support other bases than 10
-fn immediate_callback(bits: u32) -> impl Fn(&mut Lexer<Token>) -> Result<u16, String> {
-    let max_value = (2 as u16).pow(bits) - 1;
-
-    move |lexer: &mut Lexer<Token>| {
-        match lexer.slice()[1..].parse::<u16>() {
-            Ok(value) if value >= 0 && value <= max_value => Ok(value),
-            Ok(_) => Err(format!("Invalid value for Imm{} \"{}\", values must fall in the range 0 to {}", bits, lexer.slice(), max_value)),
-            Err(_) => Err(format!("Failed to parse numeric literal {}", lexer.slice()))
-        }
+fn numeric_literal_callback(lexer: &mut Lexer<Token>) -> Result<i32, String> {
+    match lexer.slice()[1..].parse::<i32>() {
+        Ok(value) => Ok(value),
+        Err(_) => Err(format!("Failed to parse numeric literal {}", lexer.slice()))
     }
 }
 
@@ -40,8 +31,8 @@ fn register_callback(lexer: &mut Lexer<Token>) -> Option<u16> {
 #[derive(Logos, Clone, Copy, Debug, PartialEq)]
 #[logos(skip r"[\s\r\n\f]+", error=String)]
 pub enum Token {
-    #[regex("#-?[0-9]+", imm5_callback)]
-    Imm5(u16),
+    #[regex("#-?[0-9]+", numeric_literal_callback)]
+    NumericLiteral(i32),
 
     #[regex("ADD|SUB|HLT", mnemonic_callback)]
     Mnemonic(Mnemonic),

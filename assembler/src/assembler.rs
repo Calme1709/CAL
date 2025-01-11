@@ -22,6 +22,30 @@ macro_rules! expect_token_of_type {
     }
 }
 
+macro_rules! encode_unsigned_integer {
+    ( $integer:expr, $bits:expr, $span:expr ) => {{
+        let min_value = 0;
+        let max_value = (2 as i32).pow($bits) - 1;
+
+        match $integer >= min_value && $integer <= max_value {
+            true => $integer as u16 & ((2 as u16).pow($bits) - 1),
+            false => return Err(AssemblerError { span: $span, error: format!("Invalid valid for u{} \"{}\", values should be in range 0-{}", $bits, $integer, max_value) })
+        }
+    }}
+}
+
+macro_rules! encode_signed_integer {
+    ( $integer:expr, $bits:expr, $span:expr ) => {{
+        let min_value = -(2 as i32).pow($bits - 1);
+        let max_value = (2 as i32).pow($bits - 1) - 1;
+
+        match $integer >= min_value && $integer <= max_value {
+            true => $integer as u16 & ((2 as u16).pow($bits) - 1),
+            false => return Err(AssemblerError { span: $span, error: format!("Invalid valid for i{} \"{}\", values should be in range {}-{}", $bits, $integer, min_value, max_value) })
+        }
+    }}
+}
+
 pub struct Assembler<'a> {
     lexer: Lexer<'a, Token>,
 }
@@ -68,7 +92,7 @@ impl Assembler<'_> {
 
         let source_one_value = match source_one_token {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
-            Token::Imm5(imm5) => imm5,
+            Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span()),
             _ => return Err(AssemblerError {
                 span: self.lexer.span(),
                 error: format!("Source one for add should be an IMM5 or a register - received {:?}", source_one_token)
@@ -86,7 +110,7 @@ impl Assembler<'_> {
 
         let source_one_value = match source_one_token {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
-            Token::Imm5(imm5) => imm5,
+            Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span()),
             _ => return Err(AssemblerError {
                 span: self.lexer.span(),
                 error: format!("Source one for sub should be an IMM5 or a register - received {:?}", source_one_token)
