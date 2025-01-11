@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'emulator'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=emulator",
+                    "--package=emulator"
+                ],
+                "filter": {
+                    "name": "emulator",
+                    "kind": "bin"
+                }
+            },
+            "args": ["./program.out"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'assembler'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=assembler",
+                    "--package=assembler"
+                ],
+                "filter": {
+                    "name": "assembler",
+                    "kind": "bin"
+                }
+            },
+            "args": ["./program.asm", "./program.out"],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
