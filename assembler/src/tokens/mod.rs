@@ -3,6 +3,7 @@ use logos::{Lexer, Logos};
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mnemonic {
     Add,
+    Sub,
     Halt
 }
 
@@ -18,6 +19,7 @@ fn imm5_callback(lexer: &mut Lexer<Token>) -> Result<u8, String> {
 fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
     match lexer.slice() {
         "ADD" => Ok(Mnemonic::Add),
+        "SUB" => Ok(Mnemonic::Sub),
         "HLT" => Ok(Mnemonic::Halt),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
     }
@@ -33,7 +35,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", imm5_callback)]
     Imm5(u8),
 
-    #[regex("ADD|HLT", mnemonic_callback)]
+    #[regex("ADD|SUB|HLT", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]

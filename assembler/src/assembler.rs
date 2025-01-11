@@ -52,7 +52,8 @@ impl Assembler<'_> {
 
             match mnemonic {
                 Mnemonic::Add => out.push(self.assemble_add_statement()?),
-                Mnemonic::Halt => out.push(0b1100000000000000)
+                Mnemonic::Sub => out.push(self.assemble_sub_statement()?),
+                Mnemonic::Halt => out.push(0b1100000000000000),
             }
         }
 
@@ -70,10 +71,28 @@ impl Assembler<'_> {
             Token::Imm5(imm5) => imm5 as u16,
             _ => return Err(AssemblerError {
                 span: self.lexer.span(),
-                error: format!("Argument two to add should be an IMM5 or a register - received {:?}", source_one_token)
+                error: format!("Source one for add should be an IMM5 or a register - received {:?}", source_one_token)
             })
         };
 
         return Ok((0b0000 << 12) | (destination_register << 9) | (source_register_zero << 6) | source_one_value);
+    }
+
+    fn assemble_sub_statement(&mut self) -> Result<u16, AssemblerError> {
+        let destination_register = expect_token_of_type!(self.lexer.next(), Register, self.lexer.span()) as u16;
+        let source_register_zero = expect_token_of_type!(self.lexer.next(), Register, self.lexer.span()) as u16;
+
+        let source_one_token = expect_token!(self.lexer.next(), self.lexer.span());
+
+        let source_one_value: u16 = match source_one_token {
+            Token::Register(source_register_one) => (1 << 5) | ((source_register_one as u16) << 2),
+            Token::Imm5(imm5) => imm5 as u16,
+            _ => return Err(AssemblerError {
+                span: self.lexer.span(),
+                error: format!("Source one for sub should be an IMM5 or a register - received {:?}", source_one_token)
+            })
+        };
+
+        return Ok((0b0001 << 12) | (destination_register << 9) | (source_register_zero << 6) | source_one_value);
     }
 }
