@@ -13,11 +13,10 @@ macro_rules! expect_token {
 
 // TODO: Possibly implement a macro to support when there are multiple valid tokens (although it wouldn't make sense to return the underlying value then)
 macro_rules! expect_token_of_type {
-    ( $token_result:expr, $token_type:ident, $span:expr ) => {
+    ( $token_result:expr, $token_type:path, $span:expr ) => {
         match expect_token![$token_result, $span] {
-            Token::$token_type(value) => value,
-            // TODO: Print out expected token
-            _ => return Err(AssemblerError { span: $span, error: format!("Unexpected token \"{:?}\"", $token_result.unwrap().unwrap()) })
+            $token_type(value) => value,
+            _ => return Err(AssemblerError { span: $span, error: format!("Unexpected token \"{:?}\", expected {}", $token_result.unwrap().unwrap(), stringify!($token_type)) })
         }
     }
 }
@@ -72,7 +71,7 @@ impl Assembler<'_> {
                 break;
             }
 
-            let mnemonic = expect_token_of_type!(token, Mnemonic, self.lexer.span());
+            let mnemonic = expect_token_of_type!(token, Token::Mnemonic, self.lexer.span());
 
             match mnemonic {
                 Mnemonic::Add => out.push(self.assemble_add_statement()?),
@@ -85,8 +84,8 @@ impl Assembler<'_> {
     }
 
     fn assemble_add_statement(&mut self) -> Result<u16, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Register, self.lexer.span());
-        let source_register_zero = expect_token_of_type!(self.lexer.next(), Register, self.lexer.span());
+        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let source_register_zero = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
 
         let source_one_token = expect_token!(self.lexer.next(), self.lexer.span());
 
@@ -103,8 +102,8 @@ impl Assembler<'_> {
     }
 
     fn assemble_sub_statement(&mut self) -> Result<u16, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Register, self.lexer.span());
-        let source_register_zero = expect_token_of_type!(self.lexer.next(), Register, self.lexer.span());
+        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let source_register_zero = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
 
         let source_one_token = expect_token!(self.lexer.next(), self.lexer.span());
 
