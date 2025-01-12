@@ -1,9 +1,11 @@
 use logos::{Lexer, Logos};
+use shared::BranchConditions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mnemonic {
     Add,
     Sub,
+    Branch,
     Halt
 }
 
@@ -19,6 +21,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
     match lexer.slice() {
         "ADD" => Ok(Mnemonic::Add),
         "SUB" => Ok(Mnemonic::Sub),
+        "BR" => Ok(Mnemonic::Branch),
         "HLT" => Ok(Mnemonic::Halt),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
     }
@@ -28,15 +31,36 @@ fn register_callback(lexer: &mut Lexer<Token>) -> Option<u16> {
     Some(lexer.slice().chars().nth(1)? as u16 - 0x30)
 }
 
+fn branch_conditions_callback(lexer: &mut Lexer<Token>) -> BranchConditions {
+    let mut out = BranchConditions::empty();
+
+    if lexer.slice().contains('n') {
+        out |= BranchConditions::NEGATIVE;
+    }
+
+    if lexer.slice().contains('z') {
+        out |= BranchConditions::ZERO;
+    }
+
+    if lexer.slice().contains('p') {
+        out |= BranchConditions::POSITIVE;
+    }
+
+    return out;
+}
+
 #[derive(Logos, Clone, Copy, Debug, PartialEq)]
 #[logos(skip r"[\s\r\n\f]+", error=String)]
 pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|HLT", mnemonic_callback)]
+    #[regex("ADD|SUB|BR|HLT", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]
     Register(u16),
+
+    #[regex("nzp|nz|n|zp|z|p", branch_conditions_callback)]
+    BranchConditons(BranchConditions)
 }

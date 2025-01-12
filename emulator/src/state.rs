@@ -4,11 +4,7 @@ use std::fmt::{
     Debug
 };
 
-enum Flags {
-    Zero = 0b1,
-    Negative = 0b10,
-    Positive = 0b100,
-}
+use shared::BranchConditions;
 
 pub struct State {
     pub memory: [u16; 65536],
@@ -17,7 +13,7 @@ pub struct State {
     pub registers: [u16; 8],
     pub pc: u16,
     pub halt: bool,
-    pub flags: u16,
+    pub flags: BranchConditions,
 }
 
 impl State {
@@ -29,21 +25,19 @@ impl State {
             registers: [0; 8],
             pc: 0,
             halt: false,
-            flags: 0,
+            flags: BranchConditions::empty(),
         }
     }
 
     pub fn set_register_and_flags(&mut self, register: u8, value: u16) {
         self.registers[register as usize] = value;
 
-        self.flags = 0;
-
         if value == 0 {
-            self.flags = Flags::Zero as u16;
+            self.flags = BranchConditions::ZERO;
         } else if value & 0x8000 == 0x8000 {
-            self.flags = Flags::Negative as u16;
+            self.flags = BranchConditions::NEGATIVE;
         } else {
-            self.flags = Flags::Positive as u16;
+            self.flags = BranchConditions::POSITIVE;
         }
     }
 }

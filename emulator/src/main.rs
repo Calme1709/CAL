@@ -31,7 +31,7 @@ fn run_program(mut state: State) -> State {
 
         instruction.execute(&mut state);
 
-        state.pc += 1;
+        state.pc = state.pc.wrapping_add(1);
     }
 
     return state;

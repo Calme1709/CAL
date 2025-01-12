@@ -7,6 +7,7 @@ name = "assembler"
 version = "0.1.0"
 dependencies = [
  "logos",
+ "shared",
 ]
 
 [[package]]
@@ -16,8 +17,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
+name = "bitflags"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1be3f42a67d6d345ecd59f675f3f012d6974981560836e938c22b424b85ce1be"
+
+[[package]]
 name = "emulator"
 version = "0.1.0"
+dependencies = [
+ "shared",
+]
 
 [[package]]
 name = "fnv"
@@ -103,6 +113,13 @@ name = "semver"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3cb6eb87a131f756572d7fb904f6e7b68633f09cca868c5df1c4b8d1a694bbba"
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+]
 
 [[package]]
 name = "syn"

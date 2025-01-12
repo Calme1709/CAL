@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "emulator",
-    "assembler"
+    "assembler",
+    "shared"
 ]
 resolver="2"

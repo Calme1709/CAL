@@ -76,6 +76,7 @@ impl Assembler<'_> {
             match mnemonic {
                 Mnemonic::Add => out.push(self.assemble_add_statement()?),
                 Mnemonic::Sub => out.push(self.assemble_sub_statement()?),
+                Mnemonic::Branch => out.push(self.assemble_branch_statement()?),
                 Mnemonic::Halt => out.push(0b1100000000000000),
             }
         }
@@ -117,5 +118,13 @@ impl Assembler<'_> {
         };
 
         return Ok((0b0001 << 12) | (destination_register << 9) | (source_register_zero << 6) | source_one_value);
+    }
+
+    fn assemble_branch_statement(&mut self) -> Result<u16, AssemblerError> {
+        let conditions = expect_token_of_type!(self.lexer.next(), Token::BranchConditons, self.lexer.span()).bits();
+        let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let encoded_offset = encode_signed_integer!(offset, 9, self.lexer.span());
+
+        return Ok((0b1001 << 12) | (conditions << 9) | encoded_offset);
     }
 }
