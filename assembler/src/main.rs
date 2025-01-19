@@ -2,8 +2,10 @@ use std::fs;
 
 use assembler::Assembler;
 
+mod statements;
 mod tokens;
 mod assembler;
+mod utils;
 
 fn main() {
     let input_path = std::env::args().nth(1).expect("No input path provided");

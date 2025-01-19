@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+
 use logos::{Lexer, Logos};
+use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Statement, StatementContainer, Sub}};
+
 use super::tokens::{ Mnemonic, Token };
 
 macro_rules! expect_token {
@@ -21,30 +25,6 @@ macro_rules! expect_token_of_type {
     }
 }
 
-macro_rules! encode_unsigned_integer {
-    ( $integer:expr, $bits:expr, $span:expr ) => {{
-        let min_value = 0;
-        let max_value = (2 as i32).pow($bits) - 1;
-
-        match $integer >= min_value && $integer <= max_value {
-            true => $integer as u16 & ((2 as u16).pow($bits) - 1),
-            false => return Err(AssemblerError { span: $span, error: format!("Invalid valid for u{} \"{}\", values should be in range 0-{}", $bits, $integer, max_value) })
-        }
-    }}
-}
-
-macro_rules! encode_signed_integer {
-    ( $integer:expr, $bits:expr, $span:expr ) => {{
-        let min_value = -(2 as i32).pow($bits - 1);
-        let max_value = (2 as i32).pow($bits - 1) - 1;
-
-        match $integer >= min_value && $integer <= max_value {
-            true => $integer as u16 & ((2 as u16).pow($bits) - 1),
-            false => return Err(AssemblerError { span: $span, error: format!("Invalid valid for i{} \"{}\", values should be in range {}-{}", $bits, $integer, min_value, max_value) })
-        }
-    }}
-}
-
 pub struct Assembler<'a> {
     lexer: Lexer<'a, Token>,
 }
@@ -62,29 +42,55 @@ impl Assembler<'_> {
     }
 
     pub fn assemble(&mut self) -> Result<Vec<u16>, AssemblerError> {
-        let mut out = Vec::new();
-
+        let mut label_map = HashMap::<String, u16>::new();
+        let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
+        let mut label_address = 0;
+        
         loop {
-            let token = self.lexer.next();
-
-            if token.is_none() {
+            let token_or_none = self.lexer.next();
+            
+            if token_or_none.is_none() {
                 break;
             }
+            
+            let token = expect_token!(token_or_none, self.lexer.span());
+            
+            // TODO: Disallow multiple consecutive labels
+            match token {
+                Token::Label(label_name) => {
+                    label_map.insert(label_name, label_address as u16);
+                },
+                Token::Mnemonic(mnemonic) => {
+                    let span_start = self.lexer.span().start;
 
-            let mnemonic = expect_token_of_type!(token, Token::Mnemonic, self.lexer.span());
+                    let statement: Box<dyn Statement> = match mnemonic {
+                        Mnemonic::Add => Box::new(self.parse_add_statement()?),
+                        Mnemonic::Sub => Box::new(self.parse_sub_statement()?),
+                        Mnemonic::Branch => Box::new(self.parse_branch_statement()?),
+                        Mnemonic::Halt => Box::new(self.parse_halt_statement()?),
+                    };
 
-            match mnemonic {
-                Mnemonic::Add => out.push(self.assemble_add_statement()?),
-                Mnemonic::Sub => out.push(self.assemble_sub_statement()?),
-                Mnemonic::Branch => out.push(self.assemble_branch_statement()?),
-                Mnemonic::Halt => out.push(0b1100000000000000),
+                    let statement_container = StatementContainer::new(statement, span_start..(self.lexer.span().end));
+
+                    label_address += statement_container.width();
+                    statements.push(statement_container);
+                },
+                _ => return Err(AssemblerError { span: self.lexer.span(), error: format!("Unexpected token \"{:?}\", expected Label or Mnemonic", token) })
             }
+        }
+
+        let mut out = Vec::new();
+        let mut statement_address = 0;
+
+        for statement in statements {
+            out.append(statement.assemble(statement_address, &label_map)?.as_mut());
+            statement_address += statement.width();
         }
 
         return Ok(out)
     }
 
-    fn assemble_add_statement(&mut self) -> Result<u16, AssemblerError> {
+    fn parse_add_statement(&mut self) -> Result<Add, AssemblerError> {
         let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
         let source_register_zero = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
 
@@ -92,17 +98,17 @@ impl Assembler<'_> {
 
         let source_one_value = match source_one_token {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
-            Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span()),
+            Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span())?,
             _ => return Err(AssemblerError {
                 span: self.lexer.span(),
                 error: format!("Source one for add should be an IMM5 or a register - received {:?}", source_one_token)
             })
         };
 
-        return Ok((0b0000 << 12) | (destination_register << 9) | (source_register_zero << 6) | source_one_value);
+        Ok(Add::new(destination_register, source_register_zero, source_one_value))
     }
 
-    fn assemble_sub_statement(&mut self) -> Result<u16, AssemblerError> {
+    fn parse_sub_statement(&mut self) -> Result<Sub, AssemblerError> {
         let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
         let source_register_zero = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
 
@@ -110,21 +116,32 @@ impl Assembler<'_> {
 
         let source_one_value = match source_one_token {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
-            Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span()),
+            Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span())?,
             _ => return Err(AssemblerError {
                 span: self.lexer.span(),
                 error: format!("Source one for sub should be an IMM5 or a register - received {:?}", source_one_token)
             })
         };
 
-        return Ok((0b0001 << 12) | (destination_register << 9) | (source_register_zero << 6) | source_one_value);
+        Ok(Sub::new(destination_register, source_register_zero, source_one_value))
     }
 
-    fn assemble_branch_statement(&mut self) -> Result<u16, AssemblerError> {
+    fn parse_branch_statement(&mut self) -> Result<Branch, AssemblerError> {
         let conditions = expect_token_of_type!(self.lexer.next(), Token::BranchConditons, self.lexer.span()).bits();
-        let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
-        let encoded_offset = encode_signed_integer!(offset, 9, self.lexer.span());
 
-        return Ok((0b1001 << 12) | (conditions << 9) | encoded_offset);
+        let destination_token = expect_token!(self.lexer.next(), self.lexer.span());
+
+        match destination_token {
+            Token::NumericLiteral(numeric_literal) => Ok(Branch::from_numeric_literal(conditions, numeric_literal)),
+            Token::Label(label) => Ok(Branch::from_label(conditions, label)),
+            _ => Err(AssemblerError{
+                span: self.lexer.span(),
+                error: format!("Unexpected token \"{:?}\", expected NumericLiteral or Label", destination_token)
+            })
+        }
+    }
+
+    fn parse_halt_statement(&mut self) -> Result<Halt, AssemblerError> {
+        Ok(Halt::new())
     }
 }

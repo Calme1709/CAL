@@ -49,7 +49,11 @@ fn branch_conditions_callback(lexer: &mut Lexer<Token>) -> BranchConditions {
     return out;
 }
 
-#[derive(Logos, Clone, Copy, Debug, PartialEq)]
+fn label_callback(lexer: &mut Lexer<Token>) -> String {
+    lexer.slice()[1..].to_owned()
+}
+
+#[derive(Logos, Clone, Debug, PartialEq)]
 #[logos(skip r"[\s\r\n\f]+", error=String)]
 pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
@@ -62,5 +66,8 @@ pub enum Token {
     Register(u16),
 
     #[regex("nzp|nz|n|zp|z|p", branch_conditions_callback)]
-    BranchConditons(BranchConditions)
+    BranchConditons(BranchConditions),
+
+    #[regex("\\.[A-z0-9]+", label_callback)]
+    Label(String)
 }
