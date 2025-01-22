@@ -147,7 +147,7 @@ There are 8 registers R0-R7.
     <tr>
         <td>LSHF</td>
         <td>Left shift</td>
-        <td>LSHF DR SR0 IMM4</td>
+        <td>LSHF DR SR0 U4</td>
         <td>0</td>
         <td>1</td>
         <td>0</td>
@@ -155,14 +155,14 @@ There are 8 registers R0-R7.
         <td colspan="3" style="text-align: center">DR</td>
         <td colspan="3" style="text-align: center">SR0</td>
         <td>0
-        <td colspan="4" style="text-align: center">IMM4</td>
+        <td colspan="4" style="text-align: center">U4</td>
         <td>0</td>
-        <td>DR = SR0 << IMM4</td>
+        <td>DR = SR0 << U4</td>
     </tr>
     <tr>
         <td>RSHF</td>
         <td>Right shift</td>
-        <td>RSHF DR SR0 IMM4</td>
+        <td>RSHF DR SR0 U4</td>
         <td>0</td>
         <td>1</td>
         <td>0</td>
@@ -170,9 +170,9 @@ There are 8 registers R0-R7.
         <td colspan="3" style="text-align: center">DR</td>
         <td colspan="3" style="text-align: center">SR0</td>
         <td>1
-        <td colspan="4" style="text-align: center">IMM4</td>
+        <td colspan="4" style="text-align: center">U4</td>
         <td>0</td>
-        <td>DR = SR0 >> IMM4</td>
+        <td>DR = SR0 >> U4</td>
     </tr>
     <tr>
         <td>LEA</td>
@@ -189,7 +189,7 @@ There are 8 registers R0-R7.
     <tr>
         <td>LD</td>
         <td>Load memory</td>
-        <td>LD DR SR1 I6</td>
+        <td>LD DR SR0 I6</td>
         <td>0</td>
         <td>1</td>
         <td>1</td>
@@ -202,19 +202,19 @@ There are 8 registers R0-R7.
     <tr>
         <td>LDI</td>
         <td>Load immediate</td>
-        <td>LDI DR IMM9</td>
+        <td>LDI DR I9</td>
         <td>0</td>
         <td>1</td>
         <td>1</td>
         <td>1
         <td colspan="3" style="text-align: center">DR</td>
-        <td colspan="9" style="text-align: center">IMM9</td>
-        <td>DR = IMM9</td>
+        <td colspan="9" style="text-align: center">I9</td>
+        <td>DR = I9</td>
     </tr>
     <tr>
         <td>ST</td>
         <td>Store in memory</td>
-        <td>ST SR0 SR1 I6</td>
+        <td>ST SR0 I6 SR1</td>
         <td>1</td>
         <td>0</td>
         <td>0</td>
@@ -227,7 +227,7 @@ There are 8 registers R0-R7.
     <tr>
         <td>BR</td>
         <td>Branch</td>
-        <td>BR [nzp] IMM9</td>
+        <td>BR [nzp] I9</td>
         <td>1</td>
         <td>0</td>
         <td>0</td>
