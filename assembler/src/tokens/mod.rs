@@ -5,6 +5,7 @@ use shared::BranchConditions;
 pub enum Mnemonic {
     Add,
     Sub,
+    LoadImmediate,
     Branch,
     Halt
 }
@@ -21,6 +22,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
     match lexer.slice() {
         "ADD" => Ok(Mnemonic::Add),
         "SUB" => Ok(Mnemonic::Sub),
+        "LDI" => Ok(Mnemonic::LoadImmediate),
         "BR" => Ok(Mnemonic::Branch),
         "HLT" => Ok(Mnemonic::Halt),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
@@ -62,7 +64,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|BR|HLT", mnemonic_callback)]
+    #[regex("ADD|SUB|LDI|BR|HLT", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]

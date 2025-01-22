@@ -202,14 +202,14 @@ There are 8 registers R0-R7.
     <tr>
         <td>LDI</td>
         <td>Load immediate</td>
-        <td>LDI DR I9</td>
+        <td>LDI DR U9</td>
         <td>0</td>
         <td>1</td>
         <td>1</td>
         <td>1
         <td colspan="3" style="text-align: center">DR</td>
-        <td colspan="9" style="text-align: center">I9</td>
-        <td>DR = I9</td>
+        <td colspan="9" style="text-align: center">U9</td>
+        <td>DR = U9</td>
     </tr>
     <tr>
         <td>ST</td>

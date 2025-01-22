@@ -1,10 +1,12 @@
 mod add;
 mod sub;
+mod load_immediate;
 mod branch;
 mod halt;
 
 pub use add::Add;
 pub use sub::Sub;
+pub use load_immediate::LoadImmediate;
 pub use branch::Branch;
 pub use halt::Halt;
 

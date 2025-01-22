@@ -1,5 +1,6 @@
 mod instructions;
 mod state;
+mod utils;
 
 use std::fs;
 use state::State;
