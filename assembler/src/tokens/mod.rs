@@ -68,7 +68,7 @@ pub enum Token {
     #[regex("R[0-7]", register_callback)]
     Register(u16),
 
-    #[regex("nzp|nz|n|zp|z|p", branch_conditions_callback)]
+    #[regex("nzp|nz|np|n|zp|z|p", branch_conditions_callback)]
     BranchConditons(BranchConditions),
 
     #[regex("\\.[A-z0-9]+", label_callback)]
