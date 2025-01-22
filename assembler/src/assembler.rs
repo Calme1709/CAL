@@ -57,6 +57,7 @@ impl Assembler<'_> {
             
             // TODO: Disallow multiple consecutive labels
             match token {
+                Token::Comment => {},
                 Token::Label(label_name) => {
                     label_map.insert(label_name, label_address as u16);
                 },

@@ -56,6 +56,9 @@ fn label_callback(lexer: &mut Lexer<Token>) -> String {
 #[derive(Logos, Clone, Debug, PartialEq)]
 #[logos(skip r"[\s\r\n\f]+", error=String)]
 pub enum Token {
+    #[regex("//.+\n")]
+    Comment,
+
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
