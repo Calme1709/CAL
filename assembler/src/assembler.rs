@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use logos::{Lexer, Logos};
-use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, LoadImmediate, Statement, StatementContainer, Sub}};
+use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Load, LoadImmediate, Statement, StatementContainer, Store, Sub}};
 
 use super::tokens::{ Mnemonic, Token };
 
@@ -67,7 +67,9 @@ impl Assembler<'_> {
                     let statement: Box<dyn Statement> = match mnemonic {
                         Mnemonic::Add => Box::new(self.parse_add_statement()?),
                         Mnemonic::Sub => Box::new(self.parse_sub_statement()?),
+                        Mnemonic::Load => Box::new(self.parse_load_statement()?),
                         Mnemonic::LoadImmediate => Box::new(self.parse_load_immediate_statement()?),
+                        Mnemonic::Store => Box::new(self.parse_store_statement()?),
                         Mnemonic::Branch => Box::new(self.parse_branch_statement()?),
                         Mnemonic::Halt => Box::new(self.parse_halt_statement()?),
                     };
@@ -128,6 +130,14 @@ impl Assembler<'_> {
         Ok(Sub::new(destination_register, source_register_zero, source_one_value))
     }
 
+    fn parse_load_statement(&mut self) -> Result<Load, AssemblerError> {
+        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let base_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+
+        Ok(Load::new(destination_register, base_register, offset))
+    }
+
     fn parse_load_immediate_statement(&mut self) -> Result<LoadImmediate, AssemblerError> {
         let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
         let numeric_literal = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
@@ -135,6 +145,14 @@ impl Assembler<'_> {
         let encoded_numeric_literal = encode_unsigned_integer!(numeric_literal, 9, self.lexer.span())?;
 
         Ok(LoadImmediate::new(destination_register, encoded_numeric_literal))
+    }
+
+    fn parse_store_statement(&mut self) -> Result<Store, AssemblerError> {
+        let base_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let source_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+
+        Ok(Store::new(base_register, offset, source_register))
     }
 
     fn parse_branch_statement(&mut self) -> Result<Branch, AssemblerError> {
