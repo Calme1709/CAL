@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use logos::{Lexer, Logos};
-use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Load, LoadImmediate, Statement, StatementContainer, Store, Sub}};
+use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Load, LoadEffectiveAddress, LoadImmediate, Statement, StatementContainer, Store, Sub}};
 
 use super::tokens::{ Mnemonic, Token };
 
@@ -45,16 +45,16 @@ impl Assembler<'_> {
         let mut label_map = HashMap::<String, u16>::new();
         let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
         let mut label_address = 0;
-        
+
         loop {
             let token_or_none = self.lexer.next();
-            
+
             if token_or_none.is_none() {
                 break;
             }
-            
+
             let token = expect_token!(token_or_none, self.lexer.span());
-            
+
             // TODO: Disallow multiple consecutive labels
             match token {
                 Token::Comment => {},
@@ -67,6 +67,7 @@ impl Assembler<'_> {
                     let statement: Box<dyn Statement> = match mnemonic {
                         Mnemonic::Add => Box::new(self.parse_add_statement()?),
                         Mnemonic::Sub => Box::new(self.parse_sub_statement()?),
+                        Mnemonic::LoadEffectiveAddress => Box::new(self.parse_load_effective_address_statement()?),
                         Mnemonic::Load => Box::new(self.parse_load_statement()?),
                         Mnemonic::LoadImmediate => Box::new(self.parse_load_immediate_statement()?),
                         Mnemonic::Store => Box::new(self.parse_store_statement()?),
@@ -128,6 +129,21 @@ impl Assembler<'_> {
         };
 
         Ok(Sub::new(destination_register, source_register_zero, source_one_value))
+    }
+
+    fn parse_load_effective_address_statement(&mut self) -> Result<LoadEffectiveAddress, AssemblerError> {
+        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+
+        let offset_token = expect_token!(self.lexer.next(), self.lexer.span());
+
+        match offset_token {
+            Token::NumericLiteral(numeric_literal) => Ok(LoadEffectiveAddress::from_numeric_literal(destination_register, numeric_literal)),
+            Token::Label(label) => Ok(LoadEffectiveAddress::from_label(destination_register, label)),
+            _ => Err(AssemblerError{
+                span: self.lexer.span(),
+                error: format!("Unexpected token \"{:?}\", expected NumericLiteral or Label", offset_token)
+            })
+        }
     }
 
     fn parse_load_statement(&mut self) -> Result<Load, AssemblerError> {

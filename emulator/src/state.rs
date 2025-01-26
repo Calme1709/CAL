@@ -47,7 +47,7 @@ impl Debug for State {
         for i in 0..8 {
             writeln!(f, "R{}: {}", i, self.registers[i])?;
         }
-        
+
         writeln!(f, "PC: {}", self.pc)?;
 
         writeln!(f)?;

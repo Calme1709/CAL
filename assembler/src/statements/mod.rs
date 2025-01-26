@@ -1,5 +1,6 @@
 mod add;
 mod sub;
+mod load_effective_address;
 mod load;
 mod load_immediate;
 mod store;
@@ -8,6 +9,7 @@ mod halt;
 
 pub use add::Add;
 pub use sub::Sub;
+pub use load_effective_address::LoadEffectiveAddress;
 pub use load::Load;
 pub use load_immediate::LoadImmediate;
 pub use store::Store;
@@ -34,7 +36,7 @@ impl StatementContainer<dyn Statement> {
         StatementContainer {
             statement,
             span
-        }   
+        }
     }
 
     pub fn assemble(&self, address: u16, label_map: &HashMap<String, u16>) -> Result<Vec<u16>, AssemblerError> {
