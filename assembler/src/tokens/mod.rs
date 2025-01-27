@@ -12,6 +12,7 @@ pub enum Mnemonic {
     Store,
     Branch,
     Halt,
+    Sleep,
 
     // Directives
     Word
@@ -35,6 +36,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
         "ST" => Ok(Mnemonic::Store),
         "BR" => Ok(Mnemonic::Branch),
         "HLT" => Ok(Mnemonic::Halt),
+        "SLP" => Ok(Mnemonic::Sleep),
         "WORD" => Ok(Mnemonic::Word),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
     }
@@ -75,7 +77,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|HLT|WORD", mnemonic_callback)]
+    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|HLT|SLP|WORD", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]

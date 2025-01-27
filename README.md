@@ -294,6 +294,17 @@ There are 8 registers R0-R7.
         <td>0</td>
         <td>Stop execution</td>
     </tr>
+    <tr>
+        <td>SLP</td>
+        <td>Sleep</td>
+        <td>SLP U12</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td colspan="12" style="text-align: center">U12</td>
+        <td>Sleep for the time specified in ms</td>
+    </tr>
 </table>
 
 ## Pseudoinstructions

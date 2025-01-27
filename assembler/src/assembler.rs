@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use logos::{Lexer, Logos};
-use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Load, LoadEffectiveAddress, LoadImmediate, Statement, StatementContainer, Store, Sub, Word}};
+use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Load, LoadEffectiveAddress, LoadImmediate, Sleep, Statement, StatementContainer, Store, Sub, Word}};
 
 use super::tokens::{ Mnemonic, Token };
 
@@ -73,6 +73,7 @@ impl Assembler<'_> {
                         Mnemonic::Store => Box::new(self.parse_store_statement()?),
                         Mnemonic::Branch => Box::new(self.parse_branch_statement()?),
                         Mnemonic::Halt => Box::new(self.parse_halt_statement()?),
+                        Mnemonic::Sleep => Box::new(self.parse_sleep_statement()?),
                         Mnemonic::Word => Box::new(self.parse_word_statement()?),
                     };
 
@@ -189,6 +190,14 @@ impl Assembler<'_> {
 
     fn parse_halt_statement(&mut self) -> Result<Halt, AssemblerError> {
         Ok(Halt::new())
+    }
+
+    fn parse_sleep_statement(&mut self) -> Result<Sleep, AssemblerError> {
+        let duration = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+
+        let encoded_duration = encode_unsigned_integer!(duration, 12, self.lexer.span())?;
+
+        Ok(Sleep::new(encoded_duration))
     }
 
     fn parse_word_statement(&mut self) -> Result<Word, AssemblerError> {
