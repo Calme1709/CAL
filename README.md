@@ -300,3 +300,8 @@ There are 8 registers R0-R7.
 |Name|Description|Syntax|Implementation|Pseudocode|
 |-|-|-|-|-|
 |NOP|No operation|NOP|ADD R0 R0 0| No operation
+
+## Directives
+|Directive|Description|Example|
+|--|--|--|
+|WORD|Output a single word based on the passed numeric literal|WORD 0xFFFF|

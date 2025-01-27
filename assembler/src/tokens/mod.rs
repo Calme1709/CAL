@@ -3,6 +3,7 @@ use shared::BranchConditions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mnemonic {
+    // Instructions
     Add,
     Sub,
     LoadEffectiveAddress,
@@ -10,7 +11,10 @@ pub enum Mnemonic {
     LoadImmediate,
     Store,
     Branch,
-    Halt
+    Halt,
+
+    // Directives
+    Word
 }
 
 // TODO: Support other bases than 10
@@ -31,6 +35,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
         "ST" => Ok(Mnemonic::Store),
         "BR" => Ok(Mnemonic::Branch),
         "HLT" => Ok(Mnemonic::Halt),
+        "WORD" => Ok(Mnemonic::Word),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
     }
 }
@@ -70,7 +75,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|HLT", mnemonic_callback)]
+    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|HLT|WORD", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]

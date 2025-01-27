@@ -6,6 +6,7 @@ mod load_immediate;
 mod store;
 mod branch;
 mod halt;
+mod word;
 
 pub use add::Add;
 pub use sub::Sub;
@@ -15,6 +16,7 @@ pub use load_immediate::LoadImmediate;
 pub use store::Store;
 pub use branch::Branch;
 pub use halt::Halt;
+pub use word::Word;
 
 use std::{collections::HashMap, ops::Range};
 
