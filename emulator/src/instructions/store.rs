@@ -27,7 +27,12 @@ impl Instruction for Store {
             false => base_register_value.wrapping_sub((0 - self.offset) as u16)
         };
 
-        state.memory[address as usize] = state.registers[self.source_register as usize];
+        match address {
+            0xFFFF => {
+                print!("{}", String::from_utf8(vec![state.registers[self.source_register as usize] as u8]).unwrap());
+            },
+            _ => state.memory[address as usize] = state.registers[self.source_register as usize]
+        }
     }
 }
 

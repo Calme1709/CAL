@@ -14,6 +14,7 @@ pub struct State {
     pub pc: u16,
     pub halt: bool,
     pub flags: BranchConditions,
+    pub stdin: Vec<u8>,
 }
 
 impl State {
@@ -26,6 +27,7 @@ impl State {
             pc: 0,
             halt: false,
             flags: BranchConditions::empty(),
+            stdin: Vec::new()
         }
     }
 

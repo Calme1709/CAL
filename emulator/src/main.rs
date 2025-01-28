@@ -3,6 +3,8 @@ mod state;
 mod utils;
 
 use std::fs;
+use nix::fcntl::{fcntl, FcntlArg, OFlag};
+use nix::unistd::read;
 use state::State;
 
 fn main() {
@@ -25,10 +27,22 @@ fn main() {
 }
 
 fn run_program(mut state: State) -> State {
+    let fd = 0;
+    let flags = fcntl(fd, FcntlArg::F_GETFL).expect("Failed to get flags");
+
+    fcntl(fd, FcntlArg::F_SETFL(OFlag::from_bits_truncate(flags) | OFlag::O_NONBLOCK)).expect("Failed to set non-blocking mode");
+
     while !state.halt {
+        let mut stdin_buffer = [0u8; 1024];
+
+        match read(fd, &mut stdin_buffer) {
+            Ok(_) => state.stdin.append(&mut stdin_buffer.to_vec()),
+            Err(_) => {}
+        }
+
         let instruction = instructions::from_machine_code(state.memory[state.pc as usize]);
 
-        println!("{:?}", instruction);
+        // println!("{:?}", instruction);
 
         instruction.execute(&mut state);
 

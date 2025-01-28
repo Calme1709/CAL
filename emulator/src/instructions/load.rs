@@ -27,7 +27,17 @@ impl Instruction for Load {
             false => base_register_value.wrapping_sub((0 - self.offset) as u16)
         };
 
-        state.set_register_and_flags(self.destination_register, state.memory[address as usize]);
+        let value = match address {
+            0xFFFE => {
+                match state.stdin.len() {
+                    0 => 0x80 as u16,
+                    _ => state.stdin.remove(0) as u16
+                }
+            },
+            _ => state.memory[address as usize]
+        };
+
+        state.set_register_and_flags(self.destination_register, value);
     }
 }
 

@@ -316,3 +316,12 @@ There are 8 registers R0-R7.
 |Directive|Description|Example|
 |--|--|--|
 |WORD|Output a single word based on the passed numeric literal|WORD 0xFFFF|
+
+
+## I/O
+This system employs memory mapped I/O according to the following design.
+
+|Device|Address|Contains|On Load|On Store|
+|--|--|--|--|--|
+|0xFFFE|STDIN|Char from stdin in bottom half of word or 0x80 if there are no more buffered characters|Load character from stdin and shift buffer||
+|0xFFFF|STDOUT|||Push character stored in bottom half of word to stdout|
