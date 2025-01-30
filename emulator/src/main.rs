@@ -42,7 +42,7 @@ fn run_program(mut state: State) -> State {
 
         let instruction = instructions::from_machine_code(state.memory[state.pc as usize]);
 
-        // println!("{:?}", instruction);
+        println!("{:?}", instruction);
 
         instruction.execute(&mut state);
 

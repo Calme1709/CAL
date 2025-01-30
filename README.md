@@ -240,15 +240,28 @@ There are 8 registers R0-R7.
     </tr>
     <tr>
         <td>CALL</td>
-        <td>Call subroutine</td>
-        <td>CALL SR0 I9</td>
+        <td>Call subroutine at SR0 + I8</td>
+        <td>CALL SR0 I8</td>
         <td>1</td>
         <td>0</td>
         <td>1</td>
-        <td>0
+        <td>0</td>
+        <td>0</td>
         <td colspan="3" style="text-align: center">SR0</td>
-        <td colspan="9" style="text-align: center">I9</td>
-        <td>PC = SR0 + I9 (and push PC onto the call stack)</td>
+        <td colspan="8" style="text-align: center">I9</td>
+        <td>PC = SR0 + I8 (and push original PC onto the call stack)</td>
+    </tr>
+    <tr>
+        <td>CALL</td>
+        <td>Call a subroutine at PC + I11</td>
+        <td>CALL I11</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td colspan="11" style="text-align: center">I11</td>
+        <td>PC = PC + I11 (and push original PC onto the call stack)</td>
     </tr>
     <tr>
         <td>RET</td>

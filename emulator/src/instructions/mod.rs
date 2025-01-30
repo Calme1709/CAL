@@ -7,6 +7,8 @@ mod store;
 mod load_immediate;
 mod load_effective_address;
 mod sleep;
+mod call;
+mod r#return;
 
 use std::fmt::Debug;
 
@@ -19,6 +21,8 @@ use store::Store;
 use load_immediate::LoadImmediate;
 use load_effective_address::LoadEffectiveAddress;
 use sleep::Sleep;
+use call::Call;
+use r#return::Return;
 
 use crate::state::State;
 
@@ -45,6 +49,8 @@ pub fn from_machine_code(machine_code: u16) -> Box<dyn Instruction> {
         0x7 => Box::new(LoadImmediate::new(machine_code)),
         0x8 => Box::new(Store::new(machine_code)),
         0x9 => Box::new(Branch::new(machine_code)),
+        0xA => Box::new(Call::new(machine_code)),
+        0xB => Box::new(Return::new(machine_code)),
         0xC => Box::new(Halt::new(machine_code)),
         0xD => Box::new(Sleep::new(machine_code)),
         _ => panic!("Invalid opcode {:1X}", (machine_code >> 12) & 0xF),

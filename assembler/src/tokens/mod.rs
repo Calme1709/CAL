@@ -11,6 +11,8 @@ pub enum Mnemonic {
     LoadImmediate,
     Store,
     Branch,
+    Call,
+    Return,
     Halt,
     Sleep,
 
@@ -34,6 +36,8 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
         "LD" => Ok(Mnemonic::Load),
         "LDI" => Ok(Mnemonic::LoadImmediate),
         "ST" => Ok(Mnemonic::Store),
+        "CALL" => Ok(Mnemonic::Call),
+        "RET" => Ok(Mnemonic::Return),
         "BR" => Ok(Mnemonic::Branch),
         "HLT" => Ok(Mnemonic::Halt),
         "SLP" => Ok(Mnemonic::Sleep),
@@ -77,7 +81,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|HLT|SLP|WORD", mnemonic_callback)]
+    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|CALL|RET|HLT|SLP|WORD", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]

@@ -8,7 +8,7 @@ use shared::BranchConditions;
 
 pub struct State {
     pub memory: [u16; 65536],
-    pub call_stack: [u8; 256],
+    pub call_stack: [u16; 256],
     pub call_stack_pointer: u8,
     pub registers: [u16; 8],
     pub pc: u16,

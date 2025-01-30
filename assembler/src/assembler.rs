@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use logos::{Lexer, Logos};
-use crate::{encode_unsigned_integer, statements::{Add, Branch, Halt, Load, LoadEffectiveAddress, LoadImmediate, Sleep, Statement, StatementContainer, Store, Sub, Word}};
+use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement, StatementContainer, Store, Sub, Word}};
 
 use super::tokens::{ Mnemonic, Token };
 
@@ -72,6 +72,8 @@ impl Assembler<'_> {
                         Mnemonic::LoadImmediate => Box::new(self.parse_load_immediate_statement()?),
                         Mnemonic::Store => Box::new(self.parse_store_statement()?),
                         Mnemonic::Branch => Box::new(self.parse_branch_statement()?),
+                        Mnemonic::Call => Box::new(self.parse_call_statement()?),
+                        Mnemonic::Return => Box::new(self.parse_return_statement()?),
                         Mnemonic::Halt => Box::new(self.parse_halt_statement()?),
                         Mnemonic::Sleep => Box::new(self.parse_sleep_statement()?),
                         Mnemonic::Word => Box::new(self.parse_word_statement()?),
@@ -186,6 +188,35 @@ impl Assembler<'_> {
                 error: format!("Unexpected token \"{:?}\", expected NumericLiteral or Label", destination_token)
             })
         }
+    }
+
+    fn parse_call_statement(&mut self) -> Result<Call, AssemblerError> {
+        let token = expect_token!(self.lexer.next(), self.lexer.span());
+
+        match token {
+            Token::Register(base_register) => {
+                let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+                let encoded_offset = encode_signed_integer!(offset, 8, self.lexer.span())?;
+
+                Ok(Call::from_register_and_offset(base_register, encoded_offset))
+            },
+            Token::NumericLiteral(offset) => {
+                let encoded_offset = encode_signed_integer!(offset, 11, self.lexer.span())?;
+
+                Ok(Call::from_encoded_offset(encoded_offset))
+            },
+            Token::Label(label) => {
+                Ok(Call::from_label(&label))
+            },
+            _ => Err(AssemblerError {
+                span: self.lexer.span(),
+                error: format!("Unexpected token \"{:?}\", expected Register, NumericLiteral, or Label", token)
+            })
+        }
+    }
+
+    fn parse_return_statement(&mut self) -> Result<Return, AssemblerError> {
+        Ok(Return::new())
     }
 
     fn parse_halt_statement(&mut self) -> Result<Halt, AssemblerError> {
