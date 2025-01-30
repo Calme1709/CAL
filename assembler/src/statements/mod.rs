@@ -10,6 +10,7 @@ mod r#return;
 mod halt;
 mod sleep;
 mod word;
+mod ascii;
 
 pub use add::Add;
 pub use sub::Sub;
@@ -23,6 +24,7 @@ pub use r#return::Return;
 pub use halt::Halt;
 pub use sleep::Sleep;
 pub use word::Word;
+pub use ascii::Ascii;
 
 use std::{collections::HashMap, ops::Range};
 

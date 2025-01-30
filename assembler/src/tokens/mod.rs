@@ -17,7 +17,8 @@ pub enum Mnemonic {
     Sleep,
 
     // Directives
-    Word
+    Word,
+    Ascii,
 }
 
 // TODO: Support other bases than 10
@@ -42,6 +43,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
         "HLT" => Ok(Mnemonic::Halt),
         "SLP" => Ok(Mnemonic::Sleep),
         "WORD" => Ok(Mnemonic::Word),
+        "ASCII" => Ok(Mnemonic::Ascii),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
     }
 }
@@ -72,6 +74,13 @@ fn label_callback(lexer: &mut Lexer<Token>) -> String {
     lexer.slice()[1..].to_owned()
 }
 
+// Escape \n in user provided strings
+fn string_callback(lexer: &mut Lexer<Token>) -> String {
+    let slice = lexer.slice();
+
+    str::replace(&slice[1..slice.len() - 1], r"\n", "\n")
+}
+
 #[derive(Logos, Clone, Debug, PartialEq)]
 #[logos(skip r"[\s\r\n\f]+", error=String)]
 pub enum Token {
@@ -81,7 +90,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|CALL|RET|HLT|SLP|WORD", mnemonic_callback)]
+    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|CALL|RET|HLT|SLP|WORD|ASCII", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]
@@ -91,5 +100,8 @@ pub enum Token {
     BranchConditons(BranchConditions),
 
     #[regex("\\.[A-z0-9]+", label_callback)]
-    Label(String)
+    Label(String),
+
+    #[regex(r#""(?:[^"]|\\")*""#, string_callback)]
+    String(String)
 }

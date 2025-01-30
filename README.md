@@ -329,6 +329,7 @@ There are 8 registers R0-R7.
 |Directive|Description|Example|
 |--|--|--|
 |WORD|Output a single word based on the passed numeric literal|WORD 0xFFFF|
+|ASCII|Output a null terminated ascii string|ASCII "Hello, World!"|
 
 
 ## I/O

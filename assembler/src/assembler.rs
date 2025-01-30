@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use logos::{Lexer, Logos};
-use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement, StatementContainer, Store, Sub, Word}};
+use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, Ascii, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement, StatementContainer, Store, Sub, Word}};
 
 use super::tokens::{ Mnemonic, Token };
 
@@ -77,6 +77,7 @@ impl Assembler<'_> {
                         Mnemonic::Halt => Box::new(self.parse_halt_statement()?),
                         Mnemonic::Sleep => Box::new(self.parse_sleep_statement()?),
                         Mnemonic::Word => Box::new(self.parse_word_statement()?),
+                        Mnemonic::Ascii => Box::new(self.parse_ascii_statement()?)
                     };
 
                     let statement_container = StatementContainer::new(statement, span_start..(self.lexer.span().end));
@@ -237,5 +238,11 @@ impl Assembler<'_> {
         let encoded_value = encode_unsigned_integer!(numeric_literal, 16, self.lexer.span())?;
 
         Ok(Word::new(encoded_value))
+    }
+
+    fn parse_ascii_statement(&mut self) -> Result<Ascii, AssemblerError> {
+        let string = expect_token_of_type!(self.lexer.next(), Token::String, self.lexer.span());
+
+        Ok(Ascii::new(&string))
     }
 }
