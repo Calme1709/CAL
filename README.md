@@ -330,7 +330,7 @@ There are 8 registers R0-R7.
 |--|--|--|
 |WORD|Output a single word based on the passed numeric literal|WORD 0xFFFF|
 |ASCII|Output a null terminated ascii string|ASCII "Hello, World!"|
-
+|BLK|Reserve a block of memory of length N words|BLK #8|
 
 ## I/O
 This system employs memory mapped I/O according to the following design.

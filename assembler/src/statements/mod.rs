@@ -11,6 +11,7 @@ mod halt;
 mod sleep;
 mod word;
 mod ascii;
+mod block;
 
 pub use add::Add;
 pub use sub::Sub;
@@ -25,6 +26,7 @@ pub use halt::Halt;
 pub use sleep::Sleep;
 pub use word::Word;
 pub use ascii::Ascii;
+pub use block::Block;
 
 use std::{collections::HashMap, ops::Range};
 

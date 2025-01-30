@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use logos::{Lexer, Logos};
-use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, Ascii, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement, StatementContainer, Store, Sub, Word}};
+use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement, StatementContainer, Store, Sub, Word}};
 
 use super::tokens::{ Mnemonic, Token };
 
@@ -77,7 +77,8 @@ impl Assembler<'_> {
                         Mnemonic::Halt => Box::new(self.parse_halt_statement()?),
                         Mnemonic::Sleep => Box::new(self.parse_sleep_statement()?),
                         Mnemonic::Word => Box::new(self.parse_word_statement()?),
-                        Mnemonic::Ascii => Box::new(self.parse_ascii_statement()?)
+                        Mnemonic::Ascii => Box::new(self.parse_ascii_statement()?),
+                        Mnemonic::Block => Box::new(self.parse_block_statement()?)
                     };
 
                     let statement_container = StatementContainer::new(statement, span_start..(self.lexer.span().end));
@@ -244,5 +245,13 @@ impl Assembler<'_> {
         let string = expect_token_of_type!(self.lexer.next(), Token::String, self.lexer.span());
 
         Ok(Ascii::new(&string))
+    }
+
+    fn parse_block_statement(&mut self) -> Result<Block, AssemblerError> {
+        let numeric_literal = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+
+        let size = encode_unsigned_integer!(numeric_literal, 16, self.lexer.span())?;
+
+        Ok(Block::new(size))
     }
 }

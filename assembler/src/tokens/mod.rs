@@ -19,6 +19,7 @@ pub enum Mnemonic {
     // Directives
     Word,
     Ascii,
+    Block,
 }
 
 // TODO: Support other bases than 10
@@ -44,6 +45,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
         "SLP" => Ok(Mnemonic::Sleep),
         "WORD" => Ok(Mnemonic::Word),
         "ASCII" => Ok(Mnemonic::Ascii),
+        "BLK" => Ok(Mnemonic::Block),
         _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
     }
 }
@@ -90,7 +92,7 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|CALL|RET|HLT|SLP|WORD|ASCII", mnemonic_callback)]
+    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|CALL|RET|HLT|SLP|WORD|ASCII|BLK", mnemonic_callback)]
     Mnemonic(Mnemonic),
 
     #[regex("R[0-7]", register_callback)]
