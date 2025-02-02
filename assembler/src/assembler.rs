@@ -42,7 +42,7 @@ impl Assembler<'_> {
     }
 
     pub fn assemble(&mut self) -> Result<Vec<u16>, AssemblerError> {
-        let mut label_map = HashMap::<String, u16>::new();
+        let mut label_map: HashMap<String, u16> = HashMap::new();
         let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
         let mut label_address = 0;
 
@@ -59,6 +59,13 @@ impl Assembler<'_> {
             match token {
                 Token::Comment => {},
                 Token::Label(label_name) => {
+                    if label_map.contains_key(&label_name) {
+                        return Err(AssemblerError {
+                            span: self.lexer.span(),
+                            error: format!("Tried to redefine already existing label \"{}\"", label_name)
+                        });
+                    }
+
                     label_map.insert(label_name, label_address as u16);
                 },
                 Token::Mnemonic(mnemonic) => {
