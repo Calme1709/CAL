@@ -1,27 +1,6 @@
 use logos::{Lexer, Logos};
 use shared::BranchConditions;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum Mnemonic {
-    // Instructions
-    Add,
-    Sub,
-    LoadEffectiveAddress,
-    Load,
-    LoadImmediate,
-    Store,
-    Branch,
-    Call,
-    Return,
-    Halt,
-    Sleep,
-
-    // Directives
-    Word,
-    Ascii,
-    Block,
-}
-
 // TODO: Support other bases than 10
 fn numeric_literal_callback(lexer: &mut Lexer<Token>) -> Result<i32, String> {
     match lexer.slice()[1..].parse::<i32>() {
@@ -30,24 +9,8 @@ fn numeric_literal_callback(lexer: &mut Lexer<Token>) -> Result<i32, String> {
     }
 }
 
-fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
-    match lexer.slice() {
-        "ADD" => Ok(Mnemonic::Add),
-        "SUB" => Ok(Mnemonic::Sub),
-        "LEA" => Ok(Mnemonic::LoadEffectiveAddress),
-        "LD" => Ok(Mnemonic::Load),
-        "LDI" => Ok(Mnemonic::LoadImmediate),
-        "ST" => Ok(Mnemonic::Store),
-        "CALL" => Ok(Mnemonic::Call),
-        "RET" => Ok(Mnemonic::Return),
-        "BR" => Ok(Mnemonic::Branch),
-        "HLT" => Ok(Mnemonic::Halt),
-        "SLP" => Ok(Mnemonic::Sleep),
-        "WORD" => Ok(Mnemonic::Word),
-        "ASCII" => Ok(Mnemonic::Ascii),
-        "BLK" => Ok(Mnemonic::Block),
-        _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice())),
-    }
+fn identifier_callback(lexer: &mut Lexer<Token>) -> String {
+    return lexer.slice().to_owned();
 }
 
 fn register_callback(lexer: &mut Lexer<Token>) -> Option<u16> {
@@ -92,8 +55,8 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("ADD|SUB|LEA|LD|LDI|ST|BR|CALL|RET|HLT|SLP|WORD|ASCII|BLK", mnemonic_callback)]
-    Mnemonic(Mnemonic),
+    #[regex("[A-Z0-9]+", identifier_callback)]
+    Identifier(String),
 
     #[regex("R[0-7]", register_callback)]
     Register(u16),

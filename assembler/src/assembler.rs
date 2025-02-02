@@ -10,7 +10,7 @@ use crate::{
 
 use logos::Lexer;
 
-use super::tokens::{Mnemonic, Token};
+use super::tokens::Token;
 
 macro_rules! next_token {
     ( $lexer:expr ) => {
@@ -90,24 +90,34 @@ pub fn assemble(source: &str) -> Result<Vec<u16>, AssemblerError> {
 
                 label_map.insert(label_name, label_address as u16);
             }
-            Token::Mnemonic(mnemonic) => {
+            Token::Identifier(identifier) => {
                 let span_start = lexer.span().start;
 
-                let statement: Box<dyn Statement> = match mnemonic {
-                    Mnemonic::Add => Box::new(parse_add_statement(&mut lexer)?),
-                    Mnemonic::Sub => Box::new(parse_sub_statement(&mut lexer)?),
-                    Mnemonic::LoadEffectiveAddress => Box::new(parse_load_effective_address_statement(&mut lexer)?),
-                    Mnemonic::Load => Box::new(parse_load_statement(&mut lexer)?),
-                    Mnemonic::LoadImmediate => Box::new(parse_load_immediate_statement(&mut lexer)?),
-                    Mnemonic::Store => Box::new(parse_store_statement(&mut lexer)?),
-                    Mnemonic::Branch => Box::new(parse_branch_statement(&mut lexer)?),
-                    Mnemonic::Call => Box::new(parse_call_statement(&mut lexer)?),
-                    Mnemonic::Return => Box::new(parse_return_statement(&mut lexer)?),
-                    Mnemonic::Halt => Box::new(parse_halt_statement(&mut lexer)?),
-                    Mnemonic::Sleep => Box::new(parse_sleep_statement(&mut lexer)?),
-                    Mnemonic::Word => Box::new(parse_word_statement(&mut lexer)?),
-                    Mnemonic::Ascii => Box::new(parse_ascii_statement(&mut lexer)?),
-                    Mnemonic::Block => Box::new(parse_block_statement(&mut lexer)?),
+                let statement: Box<dyn Statement> = match identifier.as_ref() {
+                    // Instructions
+                    "ADD" => Box::new(parse_add_statement(&mut lexer)?),
+                    "SUB" => Box::new(parse_sub_statement(&mut lexer)?),
+                    "LEA" => Box::new(parse_load_effective_address_statement(&mut lexer)?),
+                    "LD" => Box::new(parse_load_statement(&mut lexer)?),
+                    "LDI" => Box::new(parse_load_immediate_statement(&mut lexer)?),
+                    "ST" => Box::new(parse_store_statement(&mut lexer)?),
+                    "BR" => Box::new(parse_branch_statement(&mut lexer)?),
+                    "CALL" => Box::new(parse_call_statement(&mut lexer)?),
+                    "RET" => Box::new(parse_return_statement(&mut lexer)?),
+                    "HLT" => Box::new(parse_halt_statement(&mut lexer)?),
+                    "SLP" => Box::new(parse_sleep_statement(&mut lexer)?),
+
+                    // Directives
+                    "WORD" => Box::new(parse_word_statement(&mut lexer)?),
+                    "ASCII" => Box::new(parse_ascii_statement(&mut lexer)?),
+                    "BLK" => Box::new(parse_block_statement(&mut lexer)?),
+
+                    _ => {
+                        return Err(AssemblerError {
+                            span: lexer.span(),
+                            error: format!("Unrecognized identifier {}", identifier),
+                        })
+                    }
                 };
 
                 let statement_container = StatementContainer::new(statement, span_start..(lexer.span().end));
