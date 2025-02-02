@@ -18,10 +18,7 @@ impl Instruction for Branch {
 
         let offset = decode_signed_integer!(encoded_offset, 9);
 
-        Branch {
-            conditions,
-            offset
-        }
+        Branch { conditions, offset }
     }
 
     fn execute(&self, state: &mut State) {

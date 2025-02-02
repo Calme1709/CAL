@@ -6,14 +6,14 @@ use super::Statement;
 
 pub struct LoadImmediate {
     destination_register: u16,
-    value: u16
+    value: u16,
 }
 
 impl LoadImmediate {
     pub fn new(destination_register: u16, value: u16) -> LoadImmediate {
         LoadImmediate {
             destination_register,
-            value
+            value,
         }
     }
 }

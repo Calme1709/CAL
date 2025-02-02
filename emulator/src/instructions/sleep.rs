@@ -1,17 +1,21 @@
-use std::{fmt::{Debug, Formatter, Result as FormatResult}, thread, time::Duration};
+use std::{
+    fmt::{Debug, Formatter, Result as FormatResult},
+    thread,
+    time::Duration,
+};
 
 use crate::state::State;
 
 use super::Instruction;
 
 pub struct Sleep {
-    duration: u16
+    duration: u16,
 }
 
 impl Instruction for Sleep {
     fn new(machine_code: u16) -> Sleep {
         Sleep {
-            duration: machine_code & 0b111111111111
+            duration: machine_code & 0b111111111111,
         }
     }
 

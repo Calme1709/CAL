@@ -26,7 +26,7 @@ pub enum Mnemonic {
 fn numeric_literal_callback(lexer: &mut Lexer<Token>) -> Result<i32, String> {
     match lexer.slice()[1..].parse::<i32>() {
         Ok(value) => Ok(value),
-        Err(_) => Err(format!("Failed to parse numeric literal {}", lexer.slice()))
+        Err(_) => Err(format!("Failed to parse numeric literal {}", lexer.slice())),
     }
 }
 
@@ -46,7 +46,7 @@ fn mnemonic_callback(lexer: &mut Lexer<Token>) -> Result<Mnemonic, String> {
         "WORD" => Ok(Mnemonic::Word),
         "ASCII" => Ok(Mnemonic::Ascii),
         "BLK" => Ok(Mnemonic::Block),
-        _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice()))
+        _ => Err(format!("Unrecognized mnemonic \"{}\"", lexer.slice())),
     }
 }
 
@@ -105,5 +105,5 @@ pub enum Token {
     Label(String),
 
     #[regex(r#""(?:[^"]|\\")*""#, string_callback)]
-    String(String)
+    String(String),
 }

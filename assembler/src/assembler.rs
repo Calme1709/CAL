@@ -1,9 +1,15 @@
 use std::collections::HashMap;
 
+use crate::{
+    encode_signed_integer, encode_unsigned_integer,
+    statements::{
+        Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement,
+        StatementContainer, Store, Sub, Word,
+    },
+};
 use logos::{Lexer, Logos};
-use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement, StatementContainer, Store, Sub, Word}};
 
-use super::tokens::{ Mnemonic, Token };
+use super::tokens::{Mnemonic, Token};
 
 macro_rules! next_token {
     ( $lexer:expr ) => {
@@ -33,17 +39,17 @@ macro_rules! next_token {
 }
 
 macro_rules! next_token_unwrapped {
-    ( $lexer:expr, $token_type:path ) => { {
+    ( $lexer:expr, $token_type:path ) => {{
         let next_token_result = next_token!($lexer, $token_type);
 
         match next_token_result {
             Ok(token) => match token {
                 $token_type(value) => Ok(value),
-                _ => unreachable!()
+                _ => unreachable!(),
             },
-            Err(err) => Err(err)
+            Err(err) => Err(err),
         }
-    } }
+    }};
 }
 
 pub struct Assembler<'a> {
@@ -52,13 +58,13 @@ pub struct Assembler<'a> {
 
 pub struct AssemblerError {
     pub span: core::ops::Range<usize>,
-    pub error: String
+    pub error: String,
 }
 
 impl Assembler<'_> {
     pub fn new<'a>(source: &'a String) -> Assembler<'a> {
         Assembler {
-            lexer: Token::lexer(source.as_str())
+            lexer: Token::lexer(source.as_str()),
         }
     }
 
@@ -69,24 +75,29 @@ impl Assembler<'_> {
 
         loop {
             let token = match self.lexer.next() {
-                Some(Ok(token )) => token,
-                Some(Err(e)) => return Err(AssemblerError { span: self.lexer.span(), error: e }),
-                None => break
+                Some(Ok(token)) => token,
+                Some(Err(e)) => {
+                    return Err(AssemblerError {
+                        span: self.lexer.span(),
+                        error: e,
+                    })
+                }
+                None => break,
             };
 
             // TODO: Disallow multiple consecutive labels
             match token {
-                Token::Comment => {},
+                Token::Comment => {}
                 Token::Label(label_name) => {
                     if label_map.contains_key(&label_name) {
                         return Err(AssemblerError {
                             span: self.lexer.span(),
-                            error: format!("Tried to redefine already existing label \"{}\"", label_name)
+                            error: format!("Tried to redefine already existing label \"{}\"", label_name),
                         });
                     }
 
                     label_map.insert(label_name, label_address as u16);
-                },
+                }
                 Token::Mnemonic(mnemonic) => {
                     let span_start = self.lexer.span().start;
 
@@ -104,15 +115,20 @@ impl Assembler<'_> {
                         Mnemonic::Sleep => Box::new(self.parse_sleep_statement()?),
                         Mnemonic::Word => Box::new(self.parse_word_statement()?),
                         Mnemonic::Ascii => Box::new(self.parse_ascii_statement()?),
-                        Mnemonic::Block => Box::new(self.parse_block_statement()?)
+                        Mnemonic::Block => Box::new(self.parse_block_statement()?),
                     };
 
                     let statement_container = StatementContainer::new(statement, span_start..(self.lexer.span().end));
 
                     label_address += statement_container.width();
                     statements.push(statement_container);
-                },
-                _ => return Err(AssemblerError { span: self.lexer.span(), error: format!("Unexpected token \"{:?}\", expected Label or Mnemonic", token) })
+                }
+                _ => {
+                    return Err(AssemblerError {
+                        span: self.lexer.span(),
+                        error: format!("Unexpected token \"{:?}\", expected Label or Mnemonic", token),
+                    })
+                }
             }
         }
 
@@ -124,7 +140,7 @@ impl Assembler<'_> {
             statement_address += statement.width();
         }
 
-        return Ok(out)
+        return Ok(out);
     }
 
     fn parse_add_statement(&mut self) -> Result<Add, AssemblerError> {
@@ -134,7 +150,7 @@ impl Assembler<'_> {
         let source_one_value = match next_token!(self.lexer, Token::Register, Token::NumericLiteral)? {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
             Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span())?,
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         Ok(Add::new(destination_register, source_register_zero, source_one_value))
@@ -147,7 +163,7 @@ impl Assembler<'_> {
         let source_one_value = match next_token!(self.lexer, Token::Register, Token::NumericLiteral)? {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
             Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span())?,
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         Ok(Sub::new(destination_register, source_register_zero, source_one_value))
@@ -157,9 +173,12 @@ impl Assembler<'_> {
         let destination_register = next_token_unwrapped!(self.lexer, Token::Register)?;
 
         match next_token!(self.lexer, Token::NumericLiteral, Token::Label)? {
-            Token::NumericLiteral(numeric_literal) => Ok(LoadEffectiveAddress::from_numeric_literal(destination_register, numeric_literal)),
+            Token::NumericLiteral(numeric_literal) => Ok(LoadEffectiveAddress::from_numeric_literal(
+                destination_register,
+                numeric_literal,
+            )),
             Token::Label(label) => Ok(LoadEffectiveAddress::from_label(destination_register, label)),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -194,7 +213,7 @@ impl Assembler<'_> {
         match next_token!(self.lexer, Token::NumericLiteral, Token::Label)? {
             Token::NumericLiteral(numeric_literal) => Ok(Branch::from_numeric_literal(conditions, numeric_literal)),
             Token::Label(label) => Ok(Branch::from_label(conditions, label)),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -205,16 +224,14 @@ impl Assembler<'_> {
                 let encoded_offset = encode_signed_integer!(offset, 8, self.lexer.span())?;
 
                 Ok(Call::from_register_and_offset(base_register, encoded_offset))
-            },
+            }
             Token::NumericLiteral(offset) => {
                 let encoded_offset = encode_signed_integer!(offset, 11, self.lexer.span())?;
 
                 Ok(Call::from_encoded_offset(encoded_offset))
-            },
-            Token::Label(label) => {
-                Ok(Call::from_label(&label))
-            },
-            _ => unreachable!()
+            }
+            Token::Label(label) => Ok(Call::from_label(&label)),
+            _ => unreachable!(),
         }
     }
 

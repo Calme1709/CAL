@@ -2,9 +2,9 @@ use std::fs;
 
 use assembler::Assembler;
 
+mod assembler;
 mod statements;
 mod tokens;
-mod assembler;
 mod utils;
 
 fn main() {
@@ -29,6 +29,6 @@ fn main() {
             fs::write(output_path, bytes).unwrap();
         }
         // TODO: Improve error print out
-        Err(err) => print!("{} at {:?}", err.error, err.span)
+        Err(err) => print!("{} at {:?}", err.error, err.span),
     }
 }

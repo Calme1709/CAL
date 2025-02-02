@@ -13,9 +13,10 @@ bitflags! {
 impl BranchConditions {
     pub fn as_string(self) -> String {
         vec![
-            if (self & Self::NEGATIVE).bits() != 0 {"n"} else {""},
-            if (self & Self::ZERO).bits() != 0 {"z"} else {""},
-            if (self & Self::POSITIVE).bits() != 0 {"p"} else {""},
-        ].join("")
+            if (self & Self::NEGATIVE).bits() != 0 { "n" } else { "" },
+            if (self & Self::ZERO).bits() != 0 { "z" } else { "" },
+            if (self & Self::POSITIVE).bits() != 0 { "p" } else { "" },
+        ]
+        .join("")
     }
 }

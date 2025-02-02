@@ -1,8 +1,4 @@
-use std::fmt::{
-    Formatter,
-    Result as FormatResult,
-    Debug
-};
+use std::fmt::{Debug, Formatter, Result as FormatResult};
 
 use shared::BranchConditions;
 
@@ -27,7 +23,7 @@ impl State {
             pc: 0,
             halt: false,
             flags: BranchConditions::empty(),
-            stdin: Vec::new()
+            stdin: Vec::new(),
         }
     }
 
@@ -50,25 +46,15 @@ impl Debug for State {
             writeln!(f, "R{}: {}", i, self.registers[i])?;
         }
 
-        writeln!(f, "PC: {}", self.pc)?;
-
-        writeln!(f)?;
-
-        writeln!(f, "HALT: {}", self.halt)?;
-
-        writeln!(f)?;
-
+        writeln!(f, "PC: {}\n", self.pc)?;
+        writeln!(f, "HALT: {}\n", self.halt)?;
         writeln!(f, "Call Stack:")?;
 
         for i in (0..self.call_stack_pointer).rev() {
             writeln!(f, "{:04X}: {:02X}", i, self.call_stack[i as usize])?;
         }
 
-        writeln!(f)?;
-
-        writeln!(f, "Flags: {:03b}", self.flags)?;
-
-        writeln!(f)?;
+        writeln!(f, "\nFlags: {:03b}\n", self.flags)?;
 
         writeln!(f, "Memory:")?;
 
@@ -76,7 +62,11 @@ impl Debug for State {
         let mut already_output_truncated = false;
 
         for i in 0..4096 {
-            let line_output = self.memory[i * 16..i * 16 + 16].iter().map(|x| format!("{:04X}", x)).collect::<Vec<String>>().join(" ");
+            let line_output = self.memory[i * 16..i * 16 + 16]
+                .iter()
+                .map(|x| format!("{:04X}", x))
+                .collect::<Vec<String>>()
+                .join(" ");
 
             if line_output == last_line && i != 0 && i != 4095 {
                 if already_output_truncated {

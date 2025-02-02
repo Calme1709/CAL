@@ -22,7 +22,12 @@ impl Add {
 
 impl Statement for Add {
     fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Range<usize>) -> Result<Vec<u16>, AssemblerError> {
-        return Ok(vec![(0b0000 << 12) | (self.destination_register << 9) | (self.source_register_zero << 6) | self.source_one_value]);
+        return Ok(vec![
+            (0b0000 << 12)
+                | (self.destination_register << 9)
+                | (self.source_register_zero << 6)
+                | self.source_one_value,
+        ]);
     }
 
     fn width(&self) -> u16 {

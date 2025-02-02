@@ -1,28 +1,28 @@
 mod add;
+mod branch;
+mod call;
 mod halt;
 mod load;
-mod sub;
-mod branch;
-mod store;
-mod load_immediate;
 mod load_effective_address;
-mod sleep;
-mod call;
+mod load_immediate;
 mod r#return;
+mod sleep;
+mod store;
+mod sub;
 
 use std::fmt::Debug;
 
 use add::Add;
-use halt::Halt;
-use sub::Sub;
-use load::Load;
 use branch::Branch;
-use store::Store;
-use load_immediate::LoadImmediate;
-use load_effective_address::LoadEffectiveAddress;
-use sleep::Sleep;
 use call::Call;
+use halt::Halt;
+use load::Load;
+use load_effective_address::LoadEffectiveAddress;
+use load_immediate::LoadImmediate;
 use r#return::Return;
+use sleep::Sleep;
+use store::Store;
+use sub::Sub;
 
 use crate::state::State;
 
@@ -35,8 +35,10 @@ pub enum ArtihmeticMode {
     Immediate,
 }
 
-pub trait Instruction : Debug {
-    fn new(machine_code: u16) -> Self where Self : Sized;
+pub trait Instruction: Debug {
+    fn new(machine_code: u16) -> Self
+    where
+        Self: Sized;
     fn execute(&self, state: &mut State);
 }
 

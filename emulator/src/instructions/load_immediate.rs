@@ -14,10 +14,7 @@ impl Instruction for LoadImmediate {
         let dr = ((machine_code >> 9) & 0b111) as Register;
         let immediate = machine_code & 0b111111111;
 
-        LoadImmediate {
-            dr,
-            immediate
-        }
+        LoadImmediate { dr, immediate }
     }
 
     fn execute(&self, state: &mut State) {

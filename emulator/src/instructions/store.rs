@@ -15,7 +15,7 @@ impl Instruction for Store {
         Store {
             base_register: ((machine_code >> 9) & 0b111) as Register,
             offset: decode_signed_integer!((machine_code >> 3) & 0b111111, 6),
-            source_register: (machine_code & 0b111) as Register
+            source_register: (machine_code & 0b111) as Register,
         }
     }
 
@@ -24,20 +24,27 @@ impl Instruction for Store {
 
         let address = match self.offset >= 0 {
             true => base_register_value.wrapping_add(self.offset as u16),
-            false => base_register_value.wrapping_sub((0 - self.offset) as u16)
+            false => base_register_value.wrapping_sub((0 - self.offset) as u16),
         };
 
         match address {
             0xFFFF => {
-                print!("{}", String::from_utf8(vec![state.registers[self.source_register as usize] as u8]).unwrap());
-            },
-            _ => state.memory[address as usize] = state.registers[self.source_register as usize]
+                print!(
+                    "{}",
+                    String::from_utf8(vec![state.registers[self.source_register as usize] as u8]).unwrap()
+                );
+            }
+            _ => state.memory[address as usize] = state.registers[self.source_register as usize],
         }
     }
 }
 
 impl Debug for Store {
     fn fmt(&self, f: &mut Formatter) -> FormatResult {
-        write!(f, "ST R{} #{} R{}", self.base_register, self.offset, self.source_register)
+        write!(
+            f,
+            "ST R{} #{} R{}",
+            self.base_register, self.offset, self.source_register
+        )
     }
 }

@@ -5,14 +5,12 @@ use crate::assembler::AssemblerError;
 use super::Statement;
 
 pub struct Sleep {
-    duration: u16
+    duration: u16,
 }
 
 impl Sleep {
     pub fn new(duration: u16) -> Sleep {
-        Sleep {
-            duration
-        }
+        Sleep { duration }
     }
 }
 

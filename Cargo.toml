@@ -1,7 +1,3 @@
 [workspace]
-members = [
-    "emulator",
-    "assembler",
-    "shared"
-]
-resolver="2"
+members = ["emulator", "assembler", "shared"]
+resolver = "2"

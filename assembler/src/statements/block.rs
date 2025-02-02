@@ -10,9 +10,7 @@ pub struct Block {
 
 impl Block {
     pub fn new(size: u16) -> Block {
-        Block {
-            size,
-        }
+        Block { size }
     }
 }
 

@@ -18,14 +18,14 @@ impl Instruction for LoadEffectiveAddress {
 
         LoadEffectiveAddress {
             destination_register,
-            offset
+            offset,
         }
     }
 
     fn execute(&self, state: &mut State) {
         let effective_address = match self.offset < 0 {
             true => state.pc.wrapping_add(self.offset as u16),
-            false => state.pc.wrapping_sub((0 - self.offset) as u16)
+            false => state.pc.wrapping_sub((0 - self.offset) as u16),
         };
 
         state.set_register_and_flags(self.destination_register, effective_address);

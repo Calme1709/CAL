@@ -2,10 +2,10 @@ mod instructions;
 mod state;
 mod utils;
 
-use std::fs;
 use nix::fcntl::{fcntl, FcntlArg, OFlag};
 use nix::unistd::read;
 use state::State;
+use std::fs;
 
 fn main() {
     let binary_path = std::env::args().nth(1).expect("No binary provided");
@@ -30,7 +30,11 @@ fn run_program(mut state: State) -> State {
     let fd = 0;
     let flags = fcntl(fd, FcntlArg::F_GETFL).expect("Failed to get flags");
 
-    fcntl(fd, FcntlArg::F_SETFL(OFlag::from_bits_truncate(flags) | OFlag::O_NONBLOCK)).expect("Failed to set non-blocking mode");
+    fcntl(
+        fd,
+        FcntlArg::F_SETFL(OFlag::from_bits_truncate(flags) | OFlag::O_NONBLOCK),
+    )
+    .expect("Failed to set non-blocking mode");
 
     while !state.halt {
         let mut stdin_buffer = [0u8; 1024];

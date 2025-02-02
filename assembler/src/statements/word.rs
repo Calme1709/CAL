@@ -10,9 +10,7 @@ pub struct Word {
 
 impl Word {
     pub fn new(value: u16) -> Word {
-        Word {
-            value,
-        }
+        Word { value }
     }
 }
 
