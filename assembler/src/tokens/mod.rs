@@ -13,6 +13,13 @@ fn identifier_callback(lexer: &mut Lexer<Token>) -> String {
     return lexer.slice().to_owned();
 }
 
+fn macro_parameter_callback(lexer: &mut Lexer<Token>) -> Result<usize, String> {
+    match lexer.slice()[1..].parse::<usize>() {
+        Ok(value) => Ok(value),
+        Err(_) => unimplemented!(),
+    }
+}
+
 fn register_callback(lexer: &mut Lexer<Token>) -> Option<u16> {
     Some(lexer.slice().chars().nth(1)? as u16 - 0x30)
 }
@@ -55,7 +62,16 @@ pub enum Token {
     #[regex("#-?[0-9]+", numeric_literal_callback)]
     NumericLiteral(i32),
 
-    #[regex("[A-Z0-9]+", identifier_callback)]
+    #[token("MACRO")]
+    MacroStart,
+
+    #[token("ENDMACRO")]
+    MacroEnd,
+
+    #[regex(r"\$[0-9]+", macro_parameter_callback)]
+    MacroParameter(usize),
+
+    #[regex("[A-Z0-9_]+", identifier_callback)]
     Identifier(String),
 
     #[regex("R[0-7]", register_callback)]

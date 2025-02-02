@@ -320,17 +320,23 @@ There are 8 registers R0-R7.
     </tr>
 </table>
 
-## Pseudoinstructions
-|Name|Description|Syntax|Implementation|Pseudocode|
-|-|-|-|-|-|
-|NOP|No operation|NOP|ADD R0 R0 0| No operation
-
 ## Directives
 |Directive|Description|Example|
 |--|--|--|
 |WORD|Output a single word based on the passed numeric literal|WORD 0xFFFF|
 |ASCII|Output a null terminated ascii string|ASCII "Hello, World!"|
 |BLK|Reserve a block of memory of length N words|BLK #8|
+
+## Macros
+Macros can be defined and invoked as below - the numeric literal is the number of arguments:
+
+```asm
+MACRO INC #1
+    ADD $0 $0 #1
+ENDMACRO
+
+INC R0
+```
 
 ## I/O
 This system employs memory mapped I/O according to the following design.

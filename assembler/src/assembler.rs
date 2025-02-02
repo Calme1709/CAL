@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     encode_signed_integer, encode_unsigned_integer,
     statements::{
-        Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement,
-        StatementContainer, Store, Sub, Word,
+        Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, MacroInvocationStatement,
+        Return, Sleep, Statement, StatementContainer, Store, Sub, Word,
     },
 };
 
@@ -53,6 +53,11 @@ macro_rules! next_token_unwrapped {
     }};
 }
 
+struct Macro {
+    source: String,
+    number_of_parameters: usize,
+}
+
 pub struct AssemblerError {
     pub span: core::ops::Range<usize>,
     pub error: String,
@@ -64,6 +69,7 @@ pub fn assemble(source: &str) -> Result<Vec<u16>, AssemblerError> {
     let mut label_map: HashMap<String, u16> = HashMap::new();
     let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
     let mut label_address = 0;
+    let mut macros: HashMap<String, Macro> = HashMap::new();
 
     loop {
         let token = match lexer.next() {
@@ -91,39 +97,54 @@ pub fn assemble(source: &str) -> Result<Vec<u16>, AssemblerError> {
                 label_map.insert(label_name, label_address as u16);
             }
             Token::Identifier(identifier) => {
-                let span_start = lexer.span().start;
-
-                let statement: Box<dyn Statement> = match identifier.as_ref() {
-                    // Instructions
-                    "ADD" => Box::new(parse_add_statement(&mut lexer)?),
-                    "SUB" => Box::new(parse_sub_statement(&mut lexer)?),
-                    "LEA" => Box::new(parse_load_effective_address_statement(&mut lexer)?),
-                    "LD" => Box::new(parse_load_statement(&mut lexer)?),
-                    "LDI" => Box::new(parse_load_immediate_statement(&mut lexer)?),
-                    "ST" => Box::new(parse_store_statement(&mut lexer)?),
-                    "BR" => Box::new(parse_branch_statement(&mut lexer)?),
-                    "CALL" => Box::new(parse_call_statement(&mut lexer)?),
-                    "RET" => Box::new(parse_return_statement(&mut lexer)?),
-                    "HLT" => Box::new(parse_halt_statement(&mut lexer)?),
-                    "SLP" => Box::new(parse_sleep_statement(&mut lexer)?),
-
-                    // Directives
-                    "WORD" => Box::new(parse_word_statement(&mut lexer)?),
-                    "ASCII" => Box::new(parse_ascii_statement(&mut lexer)?),
-                    "BLK" => Box::new(parse_block_statement(&mut lexer)?),
-
-                    _ => {
-                        return Err(AssemblerError {
-                            span: lexer.span(),
-                            error: format!("Unrecognized identifier {}", identifier),
-                        })
-                    }
-                };
-
-                let statement_container = StatementContainer::new(statement, span_start..(lexer.span().end));
+                let statement_container = parse_statement(identifier, &mut lexer, &macros)?;
 
                 label_address += statement_container.width();
                 statements.push(statement_container);
+            }
+            Token::MacroStart => {
+                let macro_identifier = next_token_unwrapped!(lexer, Token::Identifier)?;
+
+                let number_of_params = next_token_unwrapped!(lexer, Token::NumericLiteral)?;
+
+                if number_of_params < 0 {
+                    return Err(AssemblerError {
+                        span: lexer.span(),
+                        error: format!("Number of arguments for a macro must be greater than zero"),
+                    });
+                }
+
+                let mut token = next_token!(lexer)?;
+
+                let span_start = lexer.span().start;
+                let mut span_end = span_start;
+
+                loop {
+                    if let Token::MacroEnd = token {
+                        break;
+                    }
+
+                    if let Token::MacroParameter(parameter) = token {
+                        if parameter >= (number_of_params as usize) {
+                            return Err(AssemblerError {
+                                span: lexer.span(),
+                                error: format!("Parameter out of valid range (0-{}): ${}", number_of_params, parameter),
+                            });
+                        }
+                    }
+
+                    span_end = lexer.span().end;
+
+                    token = next_token!(lexer)?;
+                }
+
+                macros.insert(
+                    macro_identifier,
+                    Macro {
+                        source: source[span_start..span_end].to_owned(),
+                        number_of_parameters: number_of_params as usize,
+                    },
+                );
             }
             _ => {
                 return Err(AssemblerError {
@@ -143,6 +164,83 @@ pub fn assemble(source: &str) -> Result<Vec<u16>, AssemblerError> {
     }
 
     return Ok(out);
+}
+
+fn parse_statement(
+    identifier: String,
+    mut lexer: &mut Lexer<Token>,
+    macros: &HashMap<String, Macro>,
+) -> Result<StatementContainer<dyn Statement>, AssemblerError> {
+    let span_start = lexer.span().start;
+
+    let statement: Box<dyn Statement> = match identifier.as_ref() {
+        // Instructions
+        "ADD" => Box::new(parse_add_statement(&mut lexer)?),
+        "SUB" => Box::new(parse_sub_statement(&mut lexer)?),
+        "LEA" => Box::new(parse_load_effective_address_statement(&mut lexer)?),
+        "LD" => Box::new(parse_load_statement(&mut lexer)?),
+        "LDI" => Box::new(parse_load_immediate_statement(&mut lexer)?),
+        "ST" => Box::new(parse_store_statement(&mut lexer)?),
+        "BR" => Box::new(parse_branch_statement(&mut lexer)?),
+        "CALL" => Box::new(parse_call_statement(&mut lexer)?),
+        "RET" => Box::new(parse_return_statement(&mut lexer)?),
+        "HLT" => Box::new(parse_halt_statement(&mut lexer)?),
+        "SLP" => Box::new(parse_sleep_statement(&mut lexer)?),
+
+        // Directives
+        "WORD" => Box::new(parse_word_statement(&mut lexer)?),
+        "ASCII" => Box::new(parse_ascii_statement(&mut lexer)?),
+        "BLK" => Box::new(parse_block_statement(&mut lexer)?),
+
+        _ => match macros.get(&identifier) {
+            Some(r#macro) => {
+                let mut macro_source = r#macro.source.to_owned();
+
+                for i in 0..r#macro.number_of_parameters {
+                    next_token!(lexer)?;
+
+                    macro_source = macro_source.replace(&format!("${}", i), lexer.slice());
+                }
+
+                let mut macro_lexer = Lexer::new(macro_source.as_str());
+
+                let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
+
+                loop {
+                    match macro_lexer.next() {
+                        Some(Ok(Token::Comment)) => {}
+                        Some(Ok(Token::Identifier(identifier))) => {
+                            // TODO: Assembler error locations will be incorrect here as we aren't passing any sort of context with the sub-lexer
+                            statements.push(parse_statement(identifier, &mut macro_lexer, macros)?);
+                        }
+                        Some(Ok(token)) => {
+                            return Err(AssemblerError {
+                                span: lexer.span(),
+                                error: format!("Unexpected {:?}, expected Identifier", token),
+                            })
+                        }
+                        Some(Err(e)) => {
+                            return Err(AssemblerError {
+                                span: lexer.span(),
+                                error: e,
+                            })
+                        }
+                        None => break,
+                    };
+                }
+
+                Box::new(MacroInvocationStatement::new(statements))
+            }
+            None => {
+                return Err(AssemblerError {
+                    span: lexer.span(),
+                    error: format!("Unrecognized identifier {}", identifier),
+                })
+            }
+        },
+    };
+
+    Ok(StatementContainer::new(statement, span_start..(lexer.span().end)))
 }
 
 fn parse_add_statement(lexer: &mut Lexer<Token>) -> Result<Add, AssemblerError> {
