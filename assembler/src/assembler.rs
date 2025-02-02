@@ -5,24 +5,45 @@ use crate::{encode_signed_integer, encode_unsigned_integer, statements::{Add, As
 
 use super::tokens::{ Mnemonic, Token };
 
-macro_rules! expect_token {
-    ( $token_result:expr, $span:expr ) => {
-        match $token_result {
-            Some(Ok(token)) => token,
-            Some(Err(e)) => return Err(AssemblerError { span: $span, error: e }),
-            None => return Err(AssemblerError { span: $span, error: format!("Unexpected end of file") })
+macro_rules! next_token {
+    ( $lexer:expr ) => {
+        match $lexer.next() {
+            Some(Ok(token)) => Ok(token),
+            Some(Err(e)) => Err(AssemblerError { span: $lexer.span(), error: e }),
+            None => Err(AssemblerError { span: $lexer.span(), error: format!("Unexpected end of file") })
+        }
+    };
+    ( $lexer:expr, $($token_type:path),+ ) => {
+        match next_token!($lexer) {
+            $( Ok(token @ $token_type(_) ) => Ok(token), )+
+            Ok(token) => {
+                let expected_tokens = vec![ $( stringify!($token_type), )+ ];
+
+                let expected_tokens_str = match expected_tokens.len() {
+                    1 => expected_tokens.get(0).unwrap().to_owned().to_owned(),
+                    2 => format!("{} or {}", expected_tokens.get(0).unwrap(), expected_tokens.get(1).unwrap()),
+                    _ => format!("{}, or {}", expected_tokens[0..(expected_tokens.len() - 1)].join(", "), expected_tokens.get(expected_tokens.len() - 1).unwrap())
+                };
+
+                Err(AssemblerError { span: $lexer.span(), error: format!("Unexpected token \"{:?}\", expected {}", token, expected_tokens_str) })
+            },
+            Err(err) => Err(err)
         }
     }
 }
 
-// TODO: Possibly implement a macro to support when there are multiple valid tokens (although it wouldn't make sense to return the underlying value then)
-macro_rules! expect_token_of_type {
-    ( $token_result:expr, $token_type:path, $span:expr ) => {
-        match expect_token![$token_result, $span] {
-            $token_type(value) => value,
-            _ => return Err(AssemblerError { span: $span, error: format!("Unexpected token \"{:?}\", expected {}", $token_result.unwrap().unwrap(), stringify!($token_type)) })
+macro_rules! next_token_unwrapped {
+    ( $lexer:expr, $token_type:path ) => { {
+        let next_token_result = next_token!($lexer, $token_type);
+
+        match next_token_result {
+            Ok(token) => match token {
+                $token_type(value) => Ok(value),
+                _ => unreachable!()
+            },
+            Err(err) => Err(err)
         }
-    }
+    } }
 }
 
 pub struct Assembler<'a> {
@@ -47,13 +68,11 @@ impl Assembler<'_> {
         let mut label_address = 0;
 
         loop {
-            let token_or_none = self.lexer.next();
-
-            if token_or_none.is_none() {
-                break;
-            }
-
-            let token = expect_token!(token_or_none, self.lexer.span());
+            let token = match self.lexer.next() {
+                Some(Ok(token )) => token,
+                Some(Err(e)) => return Err(AssemblerError { span: self.lexer.span(), error: e }),
+                None => break
+            };
 
             // TODO: Disallow multiple consecutive labels
             match token {
@@ -109,67 +128,52 @@ impl Assembler<'_> {
     }
 
     fn parse_add_statement(&mut self) -> Result<Add, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
-        let source_register_zero = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let destination_register = next_token_unwrapped!(self.lexer, Token::Register)?;
+        let source_register_zero = next_token_unwrapped!(self.lexer, Token::Register)?;
 
-        let source_one_token = expect_token!(self.lexer.next(), self.lexer.span());
-
-        let source_one_value = match source_one_token {
+        let source_one_value = match next_token!(self.lexer, Token::Register, Token::NumericLiteral)? {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
             Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span())?,
-            _ => return Err(AssemblerError {
-                span: self.lexer.span(),
-                error: format!("Source one for add should be an IMM5 or a register - received {:?}", source_one_token)
-            })
+            _ => unreachable!()
         };
 
         Ok(Add::new(destination_register, source_register_zero, source_one_value))
     }
 
     fn parse_sub_statement(&mut self) -> Result<Sub, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
-        let source_register_zero = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let destination_register = next_token_unwrapped!(self.lexer, Token::Register)?;
+        let source_register_zero = next_token_unwrapped!(self.lexer, Token::Register)?;
 
-        let source_one_token = expect_token!(self.lexer.next(), self.lexer.span());
-
-        let source_one_value = match source_one_token {
+        let source_one_value = match next_token!(self.lexer, Token::Register, Token::NumericLiteral)? {
             Token::Register(source_register_one) => (1 << 5) | ((source_register_one) << 2),
             Token::NumericLiteral(numeric_literal) => encode_unsigned_integer!(numeric_literal, 5, self.lexer.span())?,
-            _ => return Err(AssemblerError {
-                span: self.lexer.span(),
-                error: format!("Source one for sub should be an IMM5 or a register - received {:?}", source_one_token)
-            })
+            _ => unreachable!()
         };
 
         Ok(Sub::new(destination_register, source_register_zero, source_one_value))
     }
 
     fn parse_load_effective_address_statement(&mut self) -> Result<LoadEffectiveAddress, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let destination_register = next_token_unwrapped!(self.lexer, Token::Register)?;
 
-        let offset_token = expect_token!(self.lexer.next(), self.lexer.span());
-
-        match offset_token {
+        match next_token!(self.lexer, Token::NumericLiteral, Token::Label)? {
             Token::NumericLiteral(numeric_literal) => Ok(LoadEffectiveAddress::from_numeric_literal(destination_register, numeric_literal)),
             Token::Label(label) => Ok(LoadEffectiveAddress::from_label(destination_register, label)),
-            _ => Err(AssemblerError{
-                span: self.lexer.span(),
-                error: format!("Unexpected token \"{:?}\", expected NumericLiteral or Label", offset_token)
-            })
+            _ => unreachable!()
         }
     }
 
     fn parse_load_statement(&mut self) -> Result<Load, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
-        let base_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
-        let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let destination_register = next_token_unwrapped!(self.lexer, Token::Register)?;
+        let base_register = next_token_unwrapped!(self.lexer, Token::Register)?;
+        let offset = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
 
         Ok(Load::new(destination_register, base_register, offset))
     }
 
     fn parse_load_immediate_statement(&mut self) -> Result<LoadImmediate, AssemblerError> {
-        let destination_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
-        let numeric_literal = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let destination_register = next_token_unwrapped!(self.lexer, Token::Register)?;
+        let numeric_literal = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
 
         let encoded_numeric_literal = encode_unsigned_integer!(numeric_literal, 9, self.lexer.span())?;
 
@@ -177,34 +181,27 @@ impl Assembler<'_> {
     }
 
     fn parse_store_statement(&mut self) -> Result<Store, AssemblerError> {
-        let base_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
-        let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
-        let source_register = expect_token_of_type!(self.lexer.next(), Token::Register, self.lexer.span());
+        let base_register = next_token_unwrapped!(self.lexer, Token::Register)?;
+        let offset = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
+        let source_register = next_token_unwrapped!(self.lexer, Token::Register)?;
 
         Ok(Store::new(base_register, offset, source_register))
     }
 
     fn parse_branch_statement(&mut self) -> Result<Branch, AssemblerError> {
-        let conditions = expect_token_of_type!(self.lexer.next(), Token::BranchConditons, self.lexer.span()).bits();
+        let conditions = next_token_unwrapped!(self.lexer, Token::BranchConditons)?.bits();
 
-        let destination_token = expect_token!(self.lexer.next(), self.lexer.span());
-
-        match destination_token {
+        match next_token!(self.lexer, Token::NumericLiteral, Token::Label)? {
             Token::NumericLiteral(numeric_literal) => Ok(Branch::from_numeric_literal(conditions, numeric_literal)),
             Token::Label(label) => Ok(Branch::from_label(conditions, label)),
-            _ => Err(AssemblerError{
-                span: self.lexer.span(),
-                error: format!("Unexpected token \"{:?}\", expected NumericLiteral or Label", destination_token)
-            })
+            _ => unreachable!()
         }
     }
 
     fn parse_call_statement(&mut self) -> Result<Call, AssemblerError> {
-        let token = expect_token!(self.lexer.next(), self.lexer.span());
-
-        match token {
+        match next_token!(self.lexer, Token::Register, Token::NumericLiteral, Token::Label)? {
             Token::Register(base_register) => {
-                let offset = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+                let offset = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
                 let encoded_offset = encode_signed_integer!(offset, 8, self.lexer.span())?;
 
                 Ok(Call::from_register_and_offset(base_register, encoded_offset))
@@ -217,10 +214,7 @@ impl Assembler<'_> {
             Token::Label(label) => {
                 Ok(Call::from_label(&label))
             },
-            _ => Err(AssemblerError {
-                span: self.lexer.span(),
-                error: format!("Unexpected token \"{:?}\", expected Register, NumericLiteral, or Label", token)
-            })
+            _ => unreachable!()
         }
     }
 
@@ -233,7 +227,7 @@ impl Assembler<'_> {
     }
 
     fn parse_sleep_statement(&mut self) -> Result<Sleep, AssemblerError> {
-        let duration = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let duration = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
 
         let encoded_duration = encode_unsigned_integer!(duration, 12, self.lexer.span())?;
 
@@ -241,7 +235,7 @@ impl Assembler<'_> {
     }
 
     fn parse_word_statement(&mut self) -> Result<Word, AssemblerError> {
-        let numeric_literal = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let numeric_literal = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
 
         let encoded_value = encode_unsigned_integer!(numeric_literal, 16, self.lexer.span())?;
 
@@ -249,13 +243,13 @@ impl Assembler<'_> {
     }
 
     fn parse_ascii_statement(&mut self) -> Result<Ascii, AssemblerError> {
-        let string = expect_token_of_type!(self.lexer.next(), Token::String, self.lexer.span());
+        let string = next_token_unwrapped!(self.lexer, Token::String)?;
 
         Ok(Ascii::new(&string))
     }
 
     fn parse_block_statement(&mut self) -> Result<Block, AssemblerError> {
-        let numeric_literal = expect_token_of_type!(self.lexer.next(), Token::NumericLiteral, self.lexer.span());
+        let numeric_literal = next_token_unwrapped!(self.lexer, Token::NumericLiteral)?;
 
         let size = encode_unsigned_integer!(numeric_literal, 16, self.lexer.span())?;
 
