@@ -1,6 +1,6 @@
 use std::fs;
 
-use assembler::Assembler;
+use assembler::assemble;
 
 mod assembler;
 mod statements;
@@ -15,9 +15,7 @@ fn main() {
 
     let assembly_code = fs::read_to_string(&resolved_input_path).expect("Could not read input file");
 
-    let mut assembler = Assembler::new(&assembly_code);
-
-    match assembler.assemble() {
+    match assemble(&assembly_code) {
         Ok(machine_code) => {
             let mut bytes: Vec<u8> = Vec::new();
 
