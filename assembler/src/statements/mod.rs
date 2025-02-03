@@ -30,16 +30,16 @@ pub use store::Store;
 pub use sub::Sub;
 pub use word::Word;
 
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::assembler::AssemblerError;
+use crate::assembler::{AssemblerError, Backtrace};
 
 pub trait Statement {
     fn assemble(
         &self,
         address: u16,
         label_map: &HashMap<String, u16>,
-        span: &Range<usize>,
+        span: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError>;
     fn width(&self) -> u16;
 }
@@ -47,16 +47,16 @@ pub trait Statement {
 #[derive(Clone)]
 pub struct StatementContainer<T: ?Sized + Statement> {
     statement: Box<T>,
-    span: Range<usize>,
+    backtrace: Backtrace,
 }
 
 impl StatementContainer<dyn Statement> {
-    pub fn new(statement: Box<dyn Statement>, span: Range<usize>) -> Self {
-        StatementContainer { statement, span }
+    pub fn new(statement: Box<dyn Statement>, backtrace: Backtrace) -> Self {
+        StatementContainer { statement, backtrace }
     }
 
     pub fn assemble(&self, address: u16, label_map: &HashMap<String, u16>) -> Result<Vec<u16>, AssemblerError> {
-        self.statement.assemble(address, label_map, &self.span)
+        self.statement.assemble(address, label_map, &self.backtrace)
     }
 
     pub fn width(&self) -> u16 {

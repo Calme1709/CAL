@@ -1,6 +1,6 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::assembler::AssemblerError;
+use crate::assembler::{AssemblerError, Backtrace};
 
 use super::{Statement, StatementContainer};
 
@@ -19,7 +19,7 @@ impl Statement for MacroInvocationStatement {
         &self,
         address: u16,
         label_map: &HashMap<String, u16>,
-        _: &Range<usize>,
+        _: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError> {
         let assembled_statements = self
             .contained_statements

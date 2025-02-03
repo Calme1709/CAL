@@ -1,6 +1,9 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::{assembler::AssemblerError, encode_signed_integer};
+use crate::{
+    assembler::{AssemblerError, Backtrace},
+    utils::encode_signed_integer,
+};
 
 use super::Statement;
 
@@ -21,12 +24,14 @@ impl Store {
 }
 
 impl Statement for Store {
-    fn assemble(&self, _: u16, _: &HashMap<String, u16>, span: &Range<usize>) -> Result<Vec<u16>, AssemblerError> {
+    fn assemble(&self, _: u16, _: &HashMap<String, u16>, backtrace: &Backtrace) -> Result<Vec<u16>, AssemblerError> {
+        let encoded_offset = match encode_signed_integer(self.offset, 6) {
+            Ok(value) => value,
+            Err(e) => return Err(AssemblerError::new(e, backtrace.clone())),
+        };
+
         return Ok(vec![
-            (0b1000 << 12)
-                | (self.base_register << 9)
-                | (encode_signed_integer!(self.offset, 6, span.clone())? << 3)
-                | self.source_register,
+            (0b1000 << 12) | (self.base_register << 9) | (encoded_offset << 3) | self.source_register,
         ]);
     }
 

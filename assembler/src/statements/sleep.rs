@@ -1,6 +1,6 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::assembler::AssemblerError;
+use crate::assembler::{AssemblerError, Backtrace};
 
 use super::Statement;
 
@@ -15,7 +15,7 @@ impl Sleep {
 }
 
 impl Statement for Sleep {
-    fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Range<usize>) -> Result<Vec<u16>, AssemblerError> {
+    fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Backtrace) -> Result<Vec<u16>, AssemblerError> {
         return Ok(vec![(0b1101 << 12) | self.duration]);
     }
 

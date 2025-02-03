@@ -1,6 +1,9 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::{assembler::AssemblerError, encode_signed_integer, utils::get_encoded_label_offset};
+use crate::{
+    assembler::{AssemblerError, Backtrace},
+    utils::{encode_signed_integer, get_encoded_label_offset},
+};
 
 use super::Statement;
 
@@ -36,11 +39,16 @@ impl Statement for Branch {
         &self,
         address: u16,
         label_map: &HashMap<String, u16>,
-        span: &Range<usize>,
+        backtrace: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError> {
-        let encoded_offset = match self.label_or_offset.clone() {
-            LabelOrOffset::Offset(offset) => encode_signed_integer!(offset, 9, span.to_owned())?,
-            LabelOrOffset::Label(label) => get_encoded_label_offset(address + 1, &label, label_map, 9, span)?,
+        let encoded_offset_result = match self.label_or_offset.clone() {
+            LabelOrOffset::Offset(offset) => encode_signed_integer(offset, 9),
+            LabelOrOffset::Label(label) => get_encoded_label_offset(address + 1, &label, label_map, 9),
+        };
+
+        let encoded_offset = match encoded_offset_result {
+            Ok(value) => value,
+            Err(e) => return Err(AssemblerError::new(e, backtrace.clone())),
         };
 
         return Ok(vec![(0b1001 << 12) | (self.conditions << 9) | encoded_offset]);

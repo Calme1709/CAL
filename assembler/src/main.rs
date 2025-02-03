@@ -1,6 +1,6 @@
 use std::fs;
 
-use assembler::assemble;
+use assembler::{assemble, ParsingContext};
 
 mod assembler;
 mod statements;
@@ -15,7 +15,10 @@ fn main() {
 
     let assembly_code = fs::read_to_string(&resolved_input_path).expect("Could not read input file");
 
-    match assemble(&assembly_code) {
+    match assemble(
+        &assembly_code,
+        &ParsingContext::new(resolved_input_path.to_str().unwrap().to_owned(), 0, Vec::new()),
+    ) {
         Ok(machine_code) => {
             let mut bytes: Vec<u8> = Vec::new();
 
@@ -27,6 +30,6 @@ fn main() {
             fs::write(output_path, bytes).unwrap();
         }
         // TODO: Improve error print out
-        Err(err) => print!("{} at {:?}", err.error, err.span),
+        Err(err) => print!("{}", err),
     }
 }

@@ -1,6 +1,9 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::{assembler::AssemblerError, utils::get_encoded_label_offset};
+use crate::{
+    assembler::{AssemblerError, Backtrace},
+    utils::get_encoded_label_offset,
+};
 
 use super::Statement;
 
@@ -51,7 +54,7 @@ impl Statement for Call {
         &self,
         address: u16,
         label_map: &HashMap<String, u16>,
-        span: &Range<usize>,
+        backtrace: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError> {
         let result = match &self.params {
             CallTypeParams::RegisterRelative(params) => {
@@ -60,7 +63,11 @@ impl Statement for Call {
             CallTypeParams::PCRelative(params) => match params {
                 PCRelativeCallTypeParams::EncodedOffset(encoded_offset) => (0b10101 << 11) | encoded_offset,
                 PCRelativeCallTypeParams::Label(label) => {
-                    (0b10101 << 11) | get_encoded_label_offset(address + 1, &label, label_map, 11, span)?
+                    (0b10101 << 11)
+                        | match get_encoded_label_offset(address + 1, &label, label_map, 11) {
+                            Ok(value) => value,
+                            Err(e) => return Err(AssemblerError::new(e, backtrace.clone())),
+                        }
                 }
             },
         };

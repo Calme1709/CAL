@@ -1,6 +1,6 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
-use crate::assembler::AssemblerError;
+use crate::assembler::{AssemblerError, Backtrace};
 
 use super::Statement;
 
@@ -21,7 +21,7 @@ impl Add {
 }
 
 impl Statement for Add {
-    fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Range<usize>) -> Result<Vec<u16>, AssemblerError> {
+    fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Backtrace) -> Result<Vec<u16>, AssemblerError> {
         return Ok(vec![
             (0b0000 << 12)
                 | (self.destination_register << 9)
