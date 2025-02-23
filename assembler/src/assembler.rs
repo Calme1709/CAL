@@ -80,6 +80,16 @@ pub struct SourceLocation {
     character_span: Range<usize>,
 }
 
+impl PartialEq for SourceLocation {
+    fn eq(&self, other: &Self) -> bool {
+        return self.file == other.file && self.character_span == other.character_span;
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        return !self.eq(other);
+    }
+}
+
 impl SourceLocation {
     pub fn as_human_readable_string(&self) -> String {
         let source = fs::read_to_string(Path::new(&self.file)).unwrap();
@@ -313,6 +323,17 @@ fn parse_statement(
 
         _ => match macros.get(&identifier) {
             Some(r#macro) => {
+                let source_location = parsing_context.get_backtrace(lexer.span()).last().unwrap().to_owned();
+
+                for backtrace_entry in parsing_context.backtrace.clone() {
+                    if backtrace_entry == source_location {
+                        return Err(AssemblerError::new(
+                            "Detected recurisve invocation of macro".to_string(),
+                            parsing_context.get_backtrace(lexer.span()),
+                        ));
+                    }
+                }
+
                 let macro_parsing_context = ParsingContext::new(
                     r#macro.definition_file.clone(),
                     r#macro.definition_offset,
