@@ -1,6 +1,6 @@
 use std::fs;
 
-use assembler::{assemble, ParsingContext};
+use assembler::assemble;
 
 mod assembler;
 mod statements;
@@ -11,14 +11,7 @@ fn main() {
     let input_path = std::env::args().nth(1).expect("No input path provided");
     let output_path = std::env::args().nth(2).expect("No output path provided");
 
-    let resolved_input_path = std::path::Path::new(&input_path);
-
-    let assembly_code = fs::read_to_string(&resolved_input_path).expect("Could not read input file");
-
-    match assemble(
-        &assembly_code,
-        &ParsingContext::new(resolved_input_path.to_str().unwrap().to_owned(), 0, Vec::new()),
-    ) {
+    match assemble(input_path) {
         Ok(machine_code) => {
             let mut bytes: Vec<u8> = Vec::new();
 

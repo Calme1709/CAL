@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt::{Display, Formatter, Result as FormatResult},
     fs,
-    ops::Range,
+    ops::{AddAssign, Range},
     path::Path,
 };
 
@@ -189,13 +189,51 @@ impl Display for AssemblerError {
     }
 }
 
-pub fn assemble(source: &str, parsing_context: &ParsingContext) -> Result<Vec<u16>, AssemblerError> {
-    let mut lexer = Lexer::new(source);
-
+pub fn assemble(file: String) -> Result<Vec<u16>, AssemblerError> {
     let mut label_map: HashMap<String, u16> = HashMap::new();
-    let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
     let mut label_address = 0;
     let mut macros: HashMap<String, Macro> = HashMap::new();
+
+    let parsing_context = ParsingContext::new(file.clone(), 0, Vec::new());
+
+    let statements = parse_file(
+        file.clone(),
+        &mut label_map,
+        &mut label_address,
+        &mut macros,
+        parsing_context,
+    )?;
+
+    let mut out = Vec::new();
+    let mut statement_address = 0;
+
+    for statement in statements {
+        out.append(statement.assemble(statement_address, &label_map)?.as_mut());
+        statement_address += statement.width();
+    }
+
+    return Ok(out);
+}
+
+fn parse_file(
+    file: String,
+    label_map: &mut HashMap<String, u16>,
+    label_address: &mut u16,
+    macros: &mut HashMap<String, Macro>,
+    parsing_context: ParsingContext,
+) -> Result<Vec<StatementContainer<dyn Statement>>, AssemblerError> {
+    let source = match fs::read_to_string(std::path::Path::new(&file)) {
+        Ok(source) => source,
+        Err(e) => {
+            return Err(AssemblerError::new(
+                format!("Unable to read file {}: {}", file, e.to_string()),
+                parsing_context.backtrace,
+            ))
+        }
+    };
+
+    let mut lexer = Lexer::new(source.as_str());
+    let mut statements = Vec::new();
 
     loop {
         let token = match lexer.next() {
@@ -220,12 +258,12 @@ pub fn assemble(source: &str, parsing_context: &ParsingContext) -> Result<Vec<u1
                     ));
                 }
 
-                label_map.insert(label_name, label_address as u16);
+                label_map.insert(label_name, *label_address);
             }
             Token::Identifier(identifier) => {
                 let statement_container = parse_statement(identifier, &mut lexer, &macros, &parsing_context)?;
 
-                label_address += statement_container.width();
+                label_address.add_assign(statement_container.width());
                 statements.push(statement_container);
             }
             Token::MacroStart => {
@@ -283,15 +321,7 @@ pub fn assemble(source: &str, parsing_context: &ParsingContext) -> Result<Vec<u1
         }
     }
 
-    let mut out = Vec::new();
-    let mut statement_address = 0;
-
-    for statement in statements {
-        out.append(statement.assemble(statement_address, &label_map)?.as_mut());
-        statement_address += statement.width();
-    }
-
-    return Ok(out);
+    return Ok(statements);
 }
 
 fn parse_statement(
