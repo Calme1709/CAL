@@ -23,11 +23,7 @@ impl Instruction for Branch {
 
     fn execute(&self, state: &mut State) {
         if state.flags & self.conditions != BranchConditions::empty() {
-            if self.offset < 0 {
-                state.pc = state.pc.wrapping_add(self.offset as u16);
-            } else {
-                state.pc = state.pc.wrapping_sub((0 - self.offset) as u16);
-            }
+            state.pc = state.pc.wrapping_add_signed(self.offset);
         }
     }
 }

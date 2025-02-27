@@ -42,10 +42,7 @@ impl Instruction for Call {
             CallParams::PCRelative(params) => (state.pc, params.offset),
         };
 
-        let destination_address = match offset >= 0 {
-            true => base_address.wrapping_add(offset as u16),
-            false => base_address.wrapping_sub((0 - offset) as u16),
-        };
+        let destination_address = base_address.wrapping_add_signed(offset);
 
         state.call_stack[state.call_stack_pointer as usize] = state.pc;
         state.call_stack_pointer += 1;
