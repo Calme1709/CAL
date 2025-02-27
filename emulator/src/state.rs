@@ -22,7 +22,7 @@ impl State {
             registers: [0; 8],
             pc: 0,
             halt: false,
-            flags: BranchConditions::empty(),
+            flags: BranchConditions::ZERO,
             stdin: Vec::new(),
         }
     }
