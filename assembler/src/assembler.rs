@@ -354,7 +354,7 @@ fn parse_file(
 
 fn parse_statement(
     identifier: String,
-    mut lexer: &mut Lexer<Token>,
+    lexer: &mut Lexer<Token>,
     label_map: &mut HashMap<String, u16>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
@@ -365,24 +365,24 @@ fn parse_statement(
 
     let statement: Box<dyn Statement> = match identifier.as_ref() {
         // Instructions
-        "ADD" => Box::new(parse_add_statement(&mut lexer, parsing_context)?),
-        "SUB" => Box::new(parse_sub_statement(&mut lexer, parsing_context)?),
-        "LEA" => Box::new(parse_load_effective_address_statement(&mut lexer, parsing_context)?),
-        "LD" => Box::new(parse_load_statement(&mut lexer, parsing_context)?),
-        "LDI" => Box::new(parse_load_immediate_statement(&mut lexer, parsing_context)?),
-        "ST" => Box::new(parse_store_statement(&mut lexer, parsing_context)?),
-        "BR" => Box::new(parse_branch_statement(&mut lexer, parsing_context)?),
-        "CALL" => Box::new(parse_call_statement(&mut lexer, parsing_context)?),
-        "RET" => Box::new(parse_return_statement(&mut lexer, parsing_context)?),
-        "HLT" => Box::new(parse_halt_statement(&mut lexer, parsing_context)?),
-        "SLP" => Box::new(parse_sleep_statement(&mut lexer, parsing_context)?),
+        "ADD" => Box::new(parse_add_statement(lexer, parsing_context)?),
+        "SUB" => Box::new(parse_sub_statement(lexer, parsing_context)?),
+        "LEA" => Box::new(parse_load_effective_address_statement(lexer, parsing_context)?),
+        "LD" => Box::new(parse_load_statement(lexer, parsing_context)?),
+        "LDI" => Box::new(parse_load_immediate_statement(lexer, parsing_context)?),
+        "ST" => Box::new(parse_store_statement(lexer, parsing_context)?),
+        "BR" => Box::new(parse_branch_statement(lexer, parsing_context)?),
+        "CALL" => Box::new(parse_call_statement(lexer, parsing_context)?),
+        "RET" => Box::new(parse_return_statement(lexer, parsing_context)?),
+        "HLT" => Box::new(parse_halt_statement(lexer, parsing_context)?),
+        "SLP" => Box::new(parse_sleep_statement(lexer, parsing_context)?),
 
         // Directives
-        "WORD" => Box::new(parse_word_statement(&mut lexer, parsing_context)?),
-        "ASCII" => Box::new(parse_ascii_statement(&mut lexer, parsing_context)?),
-        "BLK" => Box::new(parse_block_statement(&mut lexer, parsing_context)?),
+        "WORD" => Box::new(parse_word_statement(lexer, parsing_context)?),
+        "ASCII" => Box::new(parse_ascii_statement(lexer, parsing_context)?),
+        "BLK" => Box::new(parse_block_statement(lexer, parsing_context)?),
         "INCLUDE" => Box::new(parse_include_statement(
-            &mut lexer,
+            lexer,
             label_map,
             label_address,
             macros,
@@ -391,7 +391,7 @@ fn parse_statement(
             false,
         )?),
         "INCLUDE_ONCE" => Box::new(parse_include_statement(
-            &mut lexer,
+            lexer,
             label_map,
             label_address,
             macros,
