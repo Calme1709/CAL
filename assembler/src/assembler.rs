@@ -3,13 +3,13 @@ use std::{
     fmt::{Display, Formatter, Result as FormatResult},
     fs,
     ops::{AddAssign, Range},
-    path::Path,
+    path::{absolute, Path, PathBuf},
 };
 
 use crate::{
     statements::{
-        Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, MacroInvocationStatement,
-        Return, Sleep, Statement, StatementContainer, Store, Sub, Word,
+        Add, Ascii, Block, Branch, Call, ContainerStatement, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return,
+        Sleep, Statement, StatementContainer, Store, Sub, Word,
     },
     utils::{encode_signed_integer, encode_unsigned_integer},
 };
@@ -153,6 +153,21 @@ impl ParsingContext {
 
         current_backtrace
     }
+
+    /**
+     * A parsing context is recursive if the same source location appears more than once
+     */
+    pub fn is_recursive(&self) -> bool {
+        for i in 0..self.backtrace.len() {
+            for l in (i + 1)..self.backtrace.len() {
+                if *self.backtrace.get(i).unwrap() == *self.backtrace.get(l).unwrap() {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
 
 struct Macro {
@@ -261,7 +276,14 @@ fn parse_file(
                 label_map.insert(label_name, *label_address);
             }
             Token::Identifier(identifier) => {
-                let statement_container = parse_statement(identifier, &mut lexer, &macros, &parsing_context)?;
+                let statement_container = parse_statement(
+                    identifier,
+                    &mut lexer,
+                    label_map,
+                    label_address,
+                    macros,
+                    &parsing_context,
+                )?;
 
                 label_address.add_assign(statement_container.width());
                 statements.push(statement_container);
@@ -327,7 +349,9 @@ fn parse_file(
 fn parse_statement(
     identifier: String,
     mut lexer: &mut Lexer<Token>,
-    macros: &HashMap<String, Macro>,
+    label_map: &mut HashMap<String, u16>,
+    label_address: &mut u16,
+    macros: &mut HashMap<String, Macro>,
     parsing_context: &ParsingContext,
 ) -> Result<StatementContainer<dyn Statement>, AssemblerError> {
     let span_start = lexer.span().start;
@@ -351,24 +375,59 @@ fn parse_statement(
         "ASCII" => Box::new(parse_ascii_statement(&mut lexer, parsing_context)?),
         "BLK" => Box::new(parse_block_statement(&mut lexer, parsing_context)?),
 
+        "INCLUDE" => {
+            let include_statement_start = lexer.span().start;
+
+            let relative_path_string = next_token_unwrapped!(lexer, parsing_context, Token::String)?;
+
+            let mut absolute_path_buf = PathBuf::from(parsing_context.file.clone());
+            absolute_path_buf.pop();
+            absolute_path_buf.push(Path::new(&relative_path_string));
+
+            let file_path = absolute(absolute_path_buf.as_path())
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+
+            let included_file_parsing_context = ParsingContext::new(
+                file_path.clone(),
+                0,
+                parsing_context.get_backtrace(include_statement_start..lexer.span().end),
+            );
+
+            if included_file_parsing_context.is_recursive() {
+                return Err(AssemblerError::new(
+                    "Detected recursive file include".to_string(),
+                    included_file_parsing_context.backtrace,
+                ));
+            }
+
+            let statements = parse_file(
+                file_path.clone(),
+                label_map,
+                label_address,
+                macros,
+                included_file_parsing_context,
+            )?;
+
+            Box::new(ContainerStatement::new(statements))
+        }
+
         _ => match macros.get(&identifier) {
             Some(r#macro) => {
-                let source_location = parsing_context.get_backtrace(lexer.span()).last().unwrap().to_owned();
-
-                for backtrace_entry in parsing_context.backtrace.clone() {
-                    if backtrace_entry == source_location {
-                        return Err(AssemblerError::new(
-                            "Detected recurisve invocation of macro".to_string(),
-                            parsing_context.get_backtrace(lexer.span()),
-                        ));
-                    }
-                }
-
                 let macro_parsing_context = ParsingContext::new(
                     r#macro.definition_file.clone(),
                     r#macro.definition_offset,
                     parsing_context.get_backtrace(lexer.span()),
                 );
+
+                if macro_parsing_context.is_recursive() {
+                    return Err(AssemblerError::new(
+                        "Detected recurisve invocation of macro".to_string(),
+                        macro_parsing_context.backtrace,
+                    ));
+                }
 
                 let mut macro_source = r#macro.source.to_owned();
 
@@ -390,6 +449,8 @@ fn parse_statement(
                             statements.push(parse_statement(
                                 identifier,
                                 &mut macro_lexer,
+                                label_map,
+                                label_address,
                                 macros,
                                 &macro_parsing_context,
                             )?);
@@ -410,7 +471,7 @@ fn parse_statement(
                     };
                 }
 
-                Box::new(MacroInvocationStatement::new(statements))
+                Box::new(ContainerStatement::new(statements))
             }
             None => {
                 return Err(AssemblerError::new(

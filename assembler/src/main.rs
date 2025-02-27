@@ -1,4 +1,7 @@
-use std::fs;
+use std::{
+    fs,
+    path::{absolute, Path},
+};
 
 use assembler::assemble;
 
@@ -11,7 +14,13 @@ fn main() {
     let input_path = std::env::args().nth(1).expect("No input path provided");
     let output_path = std::env::args().nth(2).expect("No output path provided");
 
-    match assemble(input_path) {
+    let absolute_input_path = absolute(Path::new(input_path.as_str()))
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    match assemble(absolute_input_path) {
         Ok(machine_code) => {
             let mut bytes: Vec<u8> = Vec::new();
 

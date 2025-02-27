@@ -4,17 +4,17 @@ use crate::assembler::{AssemblerError, Backtrace};
 
 use super::{Statement, StatementContainer};
 
-pub struct MacroInvocationStatement {
+pub struct ContainerStatement {
     contained_statements: Vec<StatementContainer<dyn Statement>>,
 }
 
-impl MacroInvocationStatement {
-    pub fn new(contained_statements: Vec<StatementContainer<dyn Statement>>) -> MacroInvocationStatement {
-        MacroInvocationStatement { contained_statements }
+impl ContainerStatement {
+    pub fn new(contained_statements: Vec<StatementContainer<dyn Statement>>) -> ContainerStatement {
+        ContainerStatement { contained_statements }
     }
 }
 
-impl Statement for MacroInvocationStatement {
+impl Statement for ContainerStatement {
     fn assemble(
         &self,
         address: u16,
