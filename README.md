@@ -326,6 +326,8 @@ There are 8 registers R0-R7.
 |WORD|Output a single word based on the passed numeric literal|WORD 0xFFFF|
 |ASCII|Output a null terminated ascii string|ASCII "Hello, World!"|
 |BLK|Reserve a block of memory of length N words|BLK #8|
+|INCLUDE|Parse the contents of another file as though it's contents were in place of this directive|INCLUDE "./file.asm"|
+|INCLUDE_ONCE|Same as the above INCLUDE directive if we have not yet included this file, otherwise do nothing|INCLUDE_ONCE "./file.asm"|
 
 ## Macros
 Macros can be defined and invoked as below - the numeric literal is the number of arguments:
