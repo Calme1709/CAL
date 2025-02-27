@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::{Display, Formatter, Result as FormatResult},
     fs,
     ops::{AddAssign, Range},
@@ -208,6 +208,7 @@ pub fn assemble(file: String) -> Result<Vec<u16>, AssemblerError> {
     let mut label_map: HashMap<String, u16> = HashMap::new();
     let mut label_address = 0;
     let mut macros: HashMap<String, Macro> = HashMap::new();
+    let mut included_files: HashSet<String> = HashSet::new();
 
     let parsing_context = ParsingContext::new(file.clone(), 0, Vec::new());
 
@@ -216,6 +217,7 @@ pub fn assemble(file: String) -> Result<Vec<u16>, AssemblerError> {
         &mut label_map,
         &mut label_address,
         &mut macros,
+        &mut included_files,
         parsing_context,
     )?;
 
@@ -235,8 +237,11 @@ fn parse_file(
     label_map: &mut HashMap<String, u16>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
+    included_files: &mut HashSet<String>,
     parsing_context: ParsingContext,
 ) -> Result<Vec<StatementContainer<dyn Statement>>, AssemblerError> {
+    included_files.insert(file.clone());
+
     let source = match fs::read_to_string(std::path::Path::new(&file)) {
         Ok(source) => source,
         Err(e) => {
@@ -282,6 +287,7 @@ fn parse_file(
                     label_map,
                     label_address,
                     macros,
+                    included_files,
                     &parsing_context,
                 )?;
 
@@ -352,6 +358,7 @@ fn parse_statement(
     label_map: &mut HashMap<String, u16>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
+    included_files: &mut HashSet<String>,
     parsing_context: &ParsingContext,
 ) -> Result<StatementContainer<dyn Statement>, AssemblerError> {
     let span_start = lexer.span().start;
@@ -374,45 +381,24 @@ fn parse_statement(
         "WORD" => Box::new(parse_word_statement(&mut lexer, parsing_context)?),
         "ASCII" => Box::new(parse_ascii_statement(&mut lexer, parsing_context)?),
         "BLK" => Box::new(parse_block_statement(&mut lexer, parsing_context)?),
-
-        "INCLUDE" => {
-            let include_statement_start = lexer.span().start;
-
-            let relative_path_string = next_token_unwrapped!(lexer, parsing_context, Token::String)?;
-
-            let mut absolute_path_buf = PathBuf::from(parsing_context.file.clone());
-            absolute_path_buf.pop();
-            absolute_path_buf.push(Path::new(&relative_path_string));
-
-            let file_path = absolute(absolute_path_buf.as_path())
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-
-            let included_file_parsing_context = ParsingContext::new(
-                file_path.clone(),
-                0,
-                parsing_context.get_backtrace(include_statement_start..lexer.span().end),
-            );
-
-            if included_file_parsing_context.is_recursive() {
-                return Err(AssemblerError::new(
-                    "Detected recursive file include".to_string(),
-                    included_file_parsing_context.backtrace,
-                ));
-            }
-
-            let statements = parse_file(
-                file_path.clone(),
-                label_map,
-                label_address,
-                macros,
-                included_file_parsing_context,
-            )?;
-
-            Box::new(ContainerStatement::new(statements))
-        }
+        "INCLUDE" => Box::new(parse_include_statement(
+            &mut lexer,
+            label_map,
+            label_address,
+            macros,
+            included_files,
+            parsing_context,
+            false,
+        )?),
+        "INCLUDE_ONCE" => Box::new(parse_include_statement(
+            &mut lexer,
+            label_map,
+            label_address,
+            macros,
+            included_files,
+            parsing_context,
+            true,
+        )?),
 
         _ => match macros.get(&identifier) {
             Some(r#macro) => {
@@ -452,6 +438,7 @@ fn parse_statement(
                                 label_map,
                                 label_address,
                                 macros,
+                                included_files,
                                 &macro_parsing_context,
                             )?);
                         }
@@ -655,4 +642,56 @@ fn parse_block_statement(lexer: &mut Lexer<Token>, parsing_context: &ParsingCont
     };
 
     Ok(Block::new(size))
+}
+
+fn parse_include_statement(
+    lexer: &mut Lexer<Token>,
+    label_map: &mut HashMap<String, u16>,
+    label_address: &mut u16,
+    macros: &mut HashMap<String, Macro>,
+    included_files: &mut HashSet<String>,
+    parsing_context: &ParsingContext,
+    include_once: bool,
+) -> Result<ContainerStatement, AssemblerError> {
+    let include_statement_start = lexer.span().start;
+
+    let relative_path_string = next_token_unwrapped!(lexer, parsing_context, Token::String)?;
+
+    let mut absolute_path_buf = PathBuf::from(parsing_context.file.clone());
+    absolute_path_buf.pop();
+    absolute_path_buf.push(Path::new(&relative_path_string));
+
+    let file_path = absolute(absolute_path_buf.as_path())
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    if include_once && included_files.contains(&file_path) {
+        return Ok(ContainerStatement::new(Vec::new()));
+    }
+
+    let included_file_parsing_context = ParsingContext::new(
+        file_path.clone(),
+        0,
+        parsing_context.get_backtrace(include_statement_start..lexer.span().end),
+    );
+
+    if included_file_parsing_context.is_recursive() {
+        return Err(AssemblerError::new(
+            "Detected recursive file include".to_string(),
+            included_file_parsing_context.backtrace,
+        ));
+    }
+
+    let statements = parse_file(
+        file_path.clone(),
+        label_map,
+        label_address,
+        macros,
+        included_files,
+        included_file_parsing_context,
+    )?;
+
+    Ok(ContainerStatement::new(statements))
 }
