@@ -8,8 +8,8 @@ use std::{
 
 use crate::{
     statements::{
-        Add, Ascii, Block, Branch, Call, ContainerStatement, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return,
-        Sleep, Statement, StatementContainer, Store, Sub, Word,
+        Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement,
+        StatementContainer, Store, Sub, Word,
     },
     utils::{encode_signed_integer, encode_unsigned_integer},
 };
@@ -170,6 +170,7 @@ impl ParsingContext {
     }
 }
 
+#[derive(Clone)]
 struct Macro {
     source: String,
     number_of_parameters: usize,
@@ -281,7 +282,7 @@ fn parse_file(
                 label_map.insert(label_name, *label_address);
             }
             Token::Identifier(identifier) => {
-                let statement_container = parse_statement(
+                let mut parsed_statements = parse_statement(
                     identifier,
                     &mut lexer,
                     label_map,
@@ -291,8 +292,7 @@ fn parse_file(
                     &parsing_context,
                 )?;
 
-                label_address.add_assign(statement_container.width());
-                statements.push(statement_container);
+                statements.append(&mut parsed_statements);
             }
             Token::MacroStart => {
                 let macro_identifier = next_token_unwrapped!(lexer, parsing_context, Token::Identifier)?;
@@ -360,107 +360,76 @@ fn parse_statement(
     macros: &mut HashMap<String, Macro>,
     included_files: &mut HashSet<String>,
     parsing_context: &ParsingContext,
-) -> Result<StatementContainer<dyn Statement>, AssemblerError> {
+) -> Result<Vec<StatementContainer<dyn Statement>>, AssemblerError> {
     let span_start = lexer.span().start;
 
-    let statement: Box<dyn Statement> = match identifier.as_ref() {
+    // Parse any non-recursive statements (i.e. not macros or file includes)
+    let non_recursive_statement: Option<Box<dyn Statement>> = match identifier.as_ref() {
         // Instructions
-        "ADD" => Box::new(parse_add_statement(lexer, parsing_context)?),
-        "SUB" => Box::new(parse_sub_statement(lexer, parsing_context)?),
-        "LEA" => Box::new(parse_load_effective_address_statement(lexer, parsing_context)?),
-        "LD" => Box::new(parse_load_statement(lexer, parsing_context)?),
-        "LDI" => Box::new(parse_load_immediate_statement(lexer, parsing_context)?),
-        "ST" => Box::new(parse_store_statement(lexer, parsing_context)?),
-        "BR" => Box::new(parse_branch_statement(lexer, parsing_context)?),
-        "CALL" => Box::new(parse_call_statement(lexer, parsing_context)?),
-        "RET" => Box::new(parse_return_statement(lexer, parsing_context)?),
-        "HLT" => Box::new(parse_halt_statement(lexer, parsing_context)?),
-        "SLP" => Box::new(parse_sleep_statement(lexer, parsing_context)?),
+        "ADD" => Some(Box::new(parse_add_statement(lexer, parsing_context)?)),
+        "SUB" => Some(Box::new(parse_sub_statement(lexer, parsing_context)?)),
+        "LEA" => Some(Box::new(parse_load_effective_address_statement(
+            lexer,
+            parsing_context,
+        )?)),
+        "LD" => Some(Box::new(parse_load_statement(lexer, parsing_context)?)),
+        "LDI" => Some(Box::new(parse_load_immediate_statement(lexer, parsing_context)?)),
+        "ST" => Some(Box::new(parse_store_statement(lexer, parsing_context)?)),
+        "BR" => Some(Box::new(parse_branch_statement(lexer, parsing_context)?)),
+        "CALL" => Some(Box::new(parse_call_statement(lexer, parsing_context)?)),
+        "RET" => Some(Box::new(parse_return_statement(lexer, parsing_context)?)),
+        "HLT" => Some(Box::new(parse_halt_statement(lexer, parsing_context)?)),
+        "SLP" => Some(Box::new(parse_sleep_statement(lexer, parsing_context)?)),
 
         // Directives
-        "WORD" => Box::new(parse_word_statement(lexer, parsing_context)?),
-        "ASCII" => Box::new(parse_ascii_statement(lexer, parsing_context)?),
-        "BLK" => Box::new(parse_block_statement(lexer, parsing_context)?),
-        "INCLUDE" => Box::new(parse_include_statement(
-            lexer,
-            label_map,
-            label_address,
-            macros,
-            included_files,
-            parsing_context,
-            false,
-        )?),
-        "INCLUDE_ONCE" => Box::new(parse_include_statement(
-            lexer,
-            label_map,
-            label_address,
-            macros,
-            included_files,
-            parsing_context,
-            true,
-        )?),
+        "WORD" => Some(Box::new(parse_word_statement(lexer, parsing_context)?)),
+        "ASCII" => Some(Box::new(parse_ascii_statement(lexer, parsing_context)?)),
+        "BLK" => Some(Box::new(parse_block_statement(lexer, parsing_context)?)),
 
-        _ => match macros.get(&identifier) {
-            Some(r#macro) => {
-                let macro_parsing_context = ParsingContext::new(
-                    r#macro.definition_file.clone(),
-                    r#macro.definition_offset,
-                    parsing_context.get_backtrace(lexer.span()),
-                );
+        _ => None,
+    };
 
-                if macro_parsing_context.is_recursive() {
-                    return Err(AssemblerError::new(
-                        "Detected recurisve invocation of macro".to_string(),
-                        macro_parsing_context.backtrace,
-                    ));
-                }
+    let statements = match non_recursive_statement {
+        Some(statement) => {
+            // If the statement was non-recursive it will have already been parsed - increment the label address and
+            // wrap the statement to be a valid return type.
+            label_address.add_assign(statement.width());
 
-                let mut macro_source = r#macro.source.to_owned();
-
-                for i in 0..r#macro.number_of_parameters {
-                    next_token!(lexer, parsing_context)?;
-
-                    macro_source = macro_source.replace(&format!("${}", i), lexer.slice());
-                }
-
-                let mut macro_lexer = Lexer::new(macro_source.as_str());
-
-                let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
-
-                loop {
-                    match macro_lexer.next() {
-                        Some(Ok(Token::Comment)) => {}
-                        Some(Ok(Token::Identifier(identifier))) => {
-                            // TODO: Assembler error locations will be incorrect here as we aren't passing any sort of context with the sub-lexer
-                            statements.push(parse_statement(
-                                identifier,
-                                &mut macro_lexer,
-                                label_map,
-                                label_address,
-                                macros,
-                                included_files,
-                                &macro_parsing_context,
-                            )?);
-                        }
-                        Some(Ok(token)) => {
-                            return Err(AssemblerError::new(
-                                format!("Unexpected {:?}, expected Identifier", token),
-                                macro_parsing_context.get_backtrace(macro_lexer.span()),
-                            ));
-                        }
-                        Some(Err(e)) => {
-                            return Err(AssemblerError::new(
-                                format!("Lexer error: {}", e),
-                                macro_parsing_context.get_backtrace(macro_lexer.span()),
-                            ));
-                        }
-                        None => break,
-                    };
-                }
-
-                Box::new(ContainerStatement::new(statements))
-            }
-            None => {
+            vec![StatementContainer::new(
+                statement,
+                parsing_context.get_backtrace(span_start..(lexer.span().end)),
+            )]
+        }
+        None => match identifier.as_ref() {
+            // If the label is recrusive - parse it
+            "INCLUDE" => parse_include_statement(
+                lexer,
+                label_map,
+                label_address,
+                macros,
+                included_files,
+                parsing_context,
+                false,
+            )?,
+            "INCLUDE_ONCE" => parse_include_statement(
+                lexer,
+                label_map,
+                label_address,
+                macros,
+                included_files,
+                parsing_context,
+                true,
+            )?,
+            _ if macros.get(&identifier).is_some() => parse_macro_invocation(
+                macros.get(&identifier).unwrap().clone(),
+                lexer,
+                label_map,
+                label_address,
+                macros,
+                included_files,
+                parsing_context,
+            )?,
+            _ => {
                 return Err(AssemblerError::new(
                     format!("Unrecognized identifier {}", identifier),
                     parsing_context.get_backtrace(lexer.span()),
@@ -469,10 +438,7 @@ fn parse_statement(
         },
     };
 
-    Ok(StatementContainer::new(
-        statement,
-        parsing_context.get_backtrace(span_start..(lexer.span().end)),
-    ))
+    Ok(statements)
 }
 
 fn parse_add_statement(lexer: &mut Lexer<Token>, parsing_context: &ParsingContext) -> Result<Add, AssemblerError> {
@@ -652,7 +618,7 @@ fn parse_include_statement(
     included_files: &mut HashSet<String>,
     parsing_context: &ParsingContext,
     include_once: bool,
-) -> Result<ContainerStatement, AssemblerError> {
+) -> Result<Vec<StatementContainer<dyn Statement>>, AssemblerError> {
     let include_statement_start = lexer.span().start;
 
     let relative_path_string = next_token_unwrapped!(lexer, parsing_context, Token::String)?;
@@ -668,7 +634,7 @@ fn parse_include_statement(
         .to_string();
 
     if include_once && included_files.contains(&file_path) {
-        return Ok(ContainerStatement::new(Vec::new()));
+        return Ok(Vec::new());
     }
 
     let included_file_parsing_context = ParsingContext::new(
@@ -684,14 +650,81 @@ fn parse_include_statement(
         ));
     }
 
-    let statements = parse_file(
+    parse_file(
         file_path.clone(),
         label_map,
         label_address,
         macros,
         included_files,
         included_file_parsing_context,
-    )?;
+    )
+}
 
-    Ok(ContainerStatement::new(statements))
+fn parse_macro_invocation(
+    r#macro: Macro,
+    lexer: &mut Lexer<Token>,
+    label_map: &mut HashMap<String, u16>,
+    label_address: &mut u16,
+    macros: &mut HashMap<String, Macro>,
+    included_files: &mut HashSet<String>,
+    parsing_context: &ParsingContext,
+) -> Result<Vec<StatementContainer<dyn Statement>>, AssemblerError> {
+    let macro_parsing_context = ParsingContext::new(
+        r#macro.definition_file.clone(),
+        r#macro.definition_offset,
+        parsing_context.get_backtrace(lexer.span()),
+    );
+
+    if macro_parsing_context.is_recursive() {
+        return Err(AssemblerError::new(
+            "Detected recurisve invocation of macro".to_string(),
+            macro_parsing_context.backtrace,
+        ));
+    }
+
+    let mut macro_source = r#macro.source.to_owned();
+
+    for i in 0..r#macro.number_of_parameters {
+        next_token!(lexer, parsing_context)?;
+
+        macro_source = macro_source.replace(&format!("${}", i), lexer.slice());
+    }
+
+    let mut macro_lexer = Lexer::new(macro_source.as_str());
+
+    let mut statements: Vec<StatementContainer<dyn Statement>> = Vec::new();
+
+    loop {
+        match macro_lexer.next() {
+            Some(Ok(Token::Comment)) => {}
+            Some(Ok(Token::Identifier(identifier))) => {
+                let mut parsed_statements = parse_statement(
+                    identifier,
+                    &mut macro_lexer,
+                    label_map,
+                    label_address,
+                    macros,
+                    included_files,
+                    &macro_parsing_context,
+                )?;
+
+                statements.append(&mut parsed_statements);
+            }
+            Some(Ok(token)) => {
+                return Err(AssemblerError::new(
+                    format!("Unexpected {:?}, expected Identifier", token),
+                    macro_parsing_context.get_backtrace(macro_lexer.span()),
+                ));
+            }
+            Some(Err(e)) => {
+                return Err(AssemblerError::new(
+                    format!("Lexer error: {}", e),
+                    macro_parsing_context.get_backtrace(macro_lexer.span()),
+                ));
+            }
+            None => break,
+        };
+    }
+
+    Ok(statements)
 }
