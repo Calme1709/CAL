@@ -24,7 +24,13 @@ impl Store {
 }
 
 impl Statement for Store {
-    fn assemble(&self, _: u16, _: &HashMap<String, u16>, backtrace: &Backtrace) -> Result<Vec<u16>, AssemblerError> {
+    fn assemble(
+        &self,
+        _: u16,
+        _: &HashMap<String, u16>,
+        _: &Vec<String>,
+        backtrace: &Backtrace,
+    ) -> Result<Vec<u16>, AssemblerError> {
         let encoded_offset = match encode_signed_integer(self.offset, 6) {
             Ok(value) => value,
             Err(e) => return Err(AssemblerError::new(e, backtrace.clone())),

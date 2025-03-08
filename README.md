@@ -240,28 +240,14 @@ There are 8 registers R0-R7.
     </tr>
     <tr>
         <td>CALL</td>
-        <td>Call subroutine at SR0 + I8</td>
-        <td>CALL SR0 I8</td>
+        <td>Call the subroutine at a specified index in the subroutine lookup table</td>
+        <td>CALL I12</td>
         <td>1</td>
         <td>0</td>
         <td>1</td>
         <td>0</td>
-        <td>0</td>
-        <td colspan="3" style="text-align: center">SR0</td>
-        <td colspan="8" style="text-align: center">I9</td>
-        <td>PC = SR0 + I8 (and push original PC onto the call stack)</td>
-    </tr>
-    <tr>
-        <td>CALL</td>
-        <td>Call a subroutine at PC + I11</td>
-        <td>CALL I11</td>
-        <td>1</td>
-        <td>0</td>
-        <td>1</td>
-        <td>0</td>
-        <td>1</td>
-        <td colspan="11" style="text-align: center">I11</td>
-        <td>PC = PC + I11 (and push original PC onto the call stack)</td>
+        <td colspan="12" style="text-align: center">I12</td>
+        <td>PC = SLT[I12]</td>
     </tr>
     <tr>
         <td>RET</td>
@@ -319,6 +305,9 @@ There are 8 registers R0-R7.
         <td>Sleep for the time specified in ms</td>
     </tr>
 </table>
+
+## Subroutine Lookup Table
+This system uses a subroutine lookup table for "CALL" execution. The first word of an assembled binary `n` indicates an SLT of length `n` occuping words 1..`n`. The emulator is configured to skip the SLT before starting execution.
 
 ## Directives
 |Directive|Description|Example|

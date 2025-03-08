@@ -17,7 +17,13 @@ impl Ascii {
 }
 
 impl Statement for Ascii {
-    fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Backtrace) -> Result<Vec<u16>, AssemblerError> {
+    fn assemble(
+        &self,
+        _: u16,
+        _: &HashMap<String, u16>,
+        _: &Vec<String>,
+        _: &Backtrace,
+    ) -> Result<Vec<u16>, AssemblerError> {
         let mut out: Vec<u16> = self.value.as_bytes().iter().map(|byte| *byte as u16).collect();
 
         out.extend(vec![0 as u16]);

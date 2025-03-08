@@ -36,6 +36,9 @@ fn run_program(mut state: State) -> State {
     )
     .expect("Failed to set non-blocking mode");
 
+    // Skip the SLT
+    state.pc = state.memory[0] + 1;
+
     while !state.halt {
         let mut stdin_buffer = [0u8; 1024];
 

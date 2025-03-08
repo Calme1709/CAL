@@ -37,6 +37,7 @@ pub trait Statement {
         &self,
         address: u16,
         label_map: &HashMap<String, u16>,
+        subroutine_lookup_table_entries: &Vec<String>,
         span: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError>;
     fn width(&self) -> u16;
@@ -53,8 +54,14 @@ impl StatementContainer<dyn Statement> {
         StatementContainer { statement, backtrace }
     }
 
-    pub fn assemble(&self, address: u16, label_map: &HashMap<String, u16>) -> Result<Vec<u16>, AssemblerError> {
-        self.statement.assemble(address, label_map, &self.backtrace)
+    pub fn assemble(
+        &self,
+        address: u16,
+        label_map: &HashMap<String, u16>,
+        subroutine_lookup_table_entries: &Vec<String>,
+    ) -> Result<Vec<u16>, AssemblerError> {
+        self.statement
+            .assemble(address, label_map, subroutine_lookup_table_entries, &self.backtrace)
     }
 
     pub fn width(&self) -> u16 {

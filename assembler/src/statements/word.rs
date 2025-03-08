@@ -15,7 +15,13 @@ impl Word {
 }
 
 impl Statement for Word {
-    fn assemble(&self, _: u16, _: &HashMap<String, u16>, _: &Backtrace) -> Result<Vec<u16>, AssemblerError> {
+    fn assemble(
+        &self,
+        _: u16,
+        _: &HashMap<String, u16>,
+        _: &Vec<String>,
+        _: &Backtrace,
+    ) -> Result<Vec<u16>, AssemblerError> {
         return Ok(vec![self.value]);
     }
 

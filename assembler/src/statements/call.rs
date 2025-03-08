@@ -1,50 +1,17 @@
 use std::collections::HashMap;
 
-use crate::{
-    assembler::{AssemblerError, Backtrace},
-    utils::get_encoded_label_offset,
-};
+use crate::assembler::{AssemblerError, Backtrace};
 
 use super::Statement;
 
-struct RegisterRelativeCallTypeParams {
-    base_register: u16,
-    encoded_offset: u16,
-}
-
-enum PCRelativeCallTypeParams {
-    Label(String),
-    EncodedOffset(u16),
-}
-
-enum CallTypeParams {
-    RegisterRelative(RegisterRelativeCallTypeParams),
-    PCRelative(PCRelativeCallTypeParams),
-}
-
 pub struct Call {
-    params: CallTypeParams,
+    label: String,
 }
 
 impl Call {
-    pub fn from_label(label: &str) -> Call {
+    pub fn new(label: &str) -> Call {
         Call {
-            params: CallTypeParams::PCRelative(PCRelativeCallTypeParams::Label(label.to_owned())),
-        }
-    }
-
-    pub fn from_encoded_offset(encoded_offset: u16) -> Call {
-        Call {
-            params: CallTypeParams::PCRelative(PCRelativeCallTypeParams::EncodedOffset(encoded_offset)),
-        }
-    }
-
-    pub fn from_register_and_offset(base_register: u16, encoded_offset: u16) -> Call {
-        Call {
-            params: CallTypeParams::RegisterRelative(RegisterRelativeCallTypeParams {
-                base_register,
-                encoded_offset,
-            }),
+            label: label.to_owned(),
         }
     }
 }
@@ -52,27 +19,24 @@ impl Call {
 impl Statement for Call {
     fn assemble(
         &self,
-        address: u16,
+        _: u16,
         label_map: &HashMap<String, u16>,
+        subroutine_lookup_table_entries: &Vec<String>,
         backtrace: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError> {
-        let result = match &self.params {
-            CallTypeParams::RegisterRelative(params) => {
-                (0b10100 << 11) | (params.base_register << 8) | params.encoded_offset
-            }
-            CallTypeParams::PCRelative(params) => match params {
-                PCRelativeCallTypeParams::EncodedOffset(encoded_offset) => (0b10101 << 11) | encoded_offset,
-                PCRelativeCallTypeParams::Label(label) => {
-                    (0b10101 << 11)
-                        | match get_encoded_label_offset(address + 1, &label, label_map, 11) {
-                            Ok(value) => value,
-                            Err(e) => return Err(AssemblerError::new(e, backtrace.clone())),
-                        }
-                }
-            },
-        };
+        if !label_map.contains_key(&self.label) {
+            return Err(AssemblerError::new(
+                format!("Unrecognized subroutine name: {}", self.label),
+                backtrace.clone(),
+            ));
+        }
 
-        Ok(vec![result])
+        let lookup_table_index = subroutine_lookup_table_entries
+            .iter()
+            .position(|label| *label == self.label)
+            .unwrap() as u16;
+
+        Ok(vec![(0b1010 << 12) | lookup_table_index])
     }
 
     fn width(&self) -> u16 {

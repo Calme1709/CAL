@@ -39,6 +39,7 @@ impl Statement for LoadEffectiveAddress {
         &self,
         address: u16,
         label_map: &HashMap<String, u16>,
+        _: &Vec<String>,
         backtrace: &Backtrace,
     ) -> Result<Vec<u16>, AssemblerError> {
         let encoded_offset_result = match self.label_or_offset.clone() {

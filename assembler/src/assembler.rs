@@ -11,7 +11,7 @@ use crate::{
         Add, Ascii, Block, Branch, Call, Halt, Load, LoadEffectiveAddress, LoadImmediate, Return, Sleep, Statement,
         StatementContainer, Store, Sub, Word,
     },
-    utils::{encode_signed_integer, encode_unsigned_integer},
+    utils::encode_unsigned_integer,
 };
 
 use logos::Lexer;
@@ -210,12 +210,14 @@ pub fn assemble(file: String) -> Result<Vec<u16>, AssemblerError> {
     let mut label_address = 0;
     let mut macros: HashMap<String, Macro> = HashMap::new();
     let mut included_files: HashSet<String> = HashSet::new();
+    let mut subroutine_lookup_table_entries: Vec<String> = Vec::new();
 
     let parsing_context = ParsingContext::new(file.clone(), 0, Vec::new());
 
     let statements = parse_file(
         file.clone(),
         &mut label_map,
+        &mut subroutine_lookup_table_entries,
         &mut label_address,
         &mut macros,
         &mut included_files,
@@ -223,10 +225,18 @@ pub fn assemble(file: String) -> Result<Vec<u16>, AssemblerError> {
     )?;
 
     let mut out = Vec::new();
+
+    out.append(&mut build_slt(&label_map, &subroutine_lookup_table_entries)?);
+
+    // Note - this isn't an absolute address but is instead relative to the end of the SLT
     let mut statement_address = 0;
 
     for statement in statements {
-        out.append(statement.assemble(statement_address, &label_map)?.as_mut());
+        out.append(
+            statement
+                .assemble(statement_address, &label_map, &subroutine_lookup_table_entries)?
+                .as_mut(),
+        );
         statement_address += statement.width();
     }
 
@@ -236,6 +246,7 @@ pub fn assemble(file: String) -> Result<Vec<u16>, AssemblerError> {
 fn parse_file(
     file: String,
     label_map: &mut HashMap<String, u16>,
+    subroutine_lookup_table_entries: &mut Vec<String>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
     included_files: &mut HashSet<String>,
@@ -286,6 +297,7 @@ fn parse_file(
                     identifier,
                     &mut lexer,
                     label_map,
+                    subroutine_lookup_table_entries,
                     label_address,
                     macros,
                     included_files,
@@ -356,6 +368,7 @@ fn parse_statement(
     identifier: String,
     lexer: &mut Lexer<Token>,
     label_map: &mut HashMap<String, u16>,
+    subroutine_lookup_table_entries: &mut Vec<String>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
     included_files: &mut HashSet<String>,
@@ -376,7 +389,11 @@ fn parse_statement(
         "LDI" => Some(Box::new(parse_load_immediate_statement(lexer, parsing_context)?)),
         "ST" => Some(Box::new(parse_store_statement(lexer, parsing_context)?)),
         "BR" => Some(Box::new(parse_branch_statement(lexer, parsing_context)?)),
-        "CALL" => Some(Box::new(parse_call_statement(lexer, parsing_context)?)),
+        "CALL" => Some(Box::new(parse_call_statement(
+            lexer,
+            parsing_context,
+            subroutine_lookup_table_entries,
+        )?)),
         "RET" => Some(Box::new(parse_return_statement(lexer, parsing_context)?)),
         "HLT" => Some(Box::new(parse_halt_statement(lexer, parsing_context)?)),
         "SLP" => Some(Box::new(parse_sleep_statement(lexer, parsing_context)?)),
@@ -405,6 +422,7 @@ fn parse_statement(
             "INCLUDE" => parse_include_statement(
                 lexer,
                 label_map,
+                subroutine_lookup_table_entries,
                 label_address,
                 macros,
                 included_files,
@@ -414,6 +432,7 @@ fn parse_statement(
             "INCLUDE_ONCE" => parse_include_statement(
                 lexer,
                 label_map,
+                subroutine_lookup_table_entries,
                 label_address,
                 macros,
                 included_files,
@@ -424,6 +443,7 @@ fn parse_statement(
                 macros.get(&identifier).unwrap().clone(),
                 lexer,
                 label_map,
+                subroutine_lookup_table_entries,
                 label_address,
                 macros,
                 included_files,
@@ -533,34 +553,18 @@ fn parse_branch_statement(
     }
 }
 
-fn parse_call_statement(lexer: &mut Lexer<Token>, parsing_context: &ParsingContext) -> Result<Call, AssemblerError> {
-    match next_token!(
-        lexer,
-        parsing_context,
-        Token::Register,
-        Token::NumericLiteral,
-        Token::Label
-    )? {
-        Token::Register(base_register) => {
-            let offset = next_token_unwrapped!(lexer, parsing_context, Token::NumericLiteral)?;
-            let encoded_offset = match encode_signed_integer(offset, 8) {
-                Ok(value) => value,
-                Err(e) => return Err(AssemblerError::new(e, parsing_context.get_backtrace(lexer.span()))),
-            };
+fn parse_call_statement(
+    lexer: &mut Lexer<Token>,
+    parsing_context: &ParsingContext,
+    subroutine_lookup_table_entries: &mut Vec<String>,
+) -> Result<Call, AssemblerError> {
+    let label = next_token_unwrapped!(lexer, parsing_context, Token::Label)?;
 
-            Ok(Call::from_register_and_offset(base_register, encoded_offset))
-        }
-        Token::NumericLiteral(offset) => {
-            let encoded_offset = match encode_signed_integer(offset, 11) {
-                Ok(value) => value,
-                Err(e) => return Err(AssemblerError::new(e, parsing_context.get_backtrace(lexer.span()))),
-            };
-
-            Ok(Call::from_encoded_offset(encoded_offset))
-        }
-        Token::Label(label) => Ok(Call::from_label(&label)),
-        _ => unreachable!(),
+    if !subroutine_lookup_table_entries.contains(&label) {
+        subroutine_lookup_table_entries.push(label.clone());
     }
+
+    Ok(Call::new(&label))
 }
 
 fn parse_return_statement<'a>(_: &mut Lexer<'a, Token>, _: &ParsingContext) -> Result<Return, AssemblerError> {
@@ -613,6 +617,7 @@ fn parse_block_statement(lexer: &mut Lexer<Token>, parsing_context: &ParsingCont
 fn parse_include_statement(
     lexer: &mut Lexer<Token>,
     label_map: &mut HashMap<String, u16>,
+    subroutine_lookup_table_entries: &mut Vec<String>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
     included_files: &mut HashSet<String>,
@@ -653,6 +658,7 @@ fn parse_include_statement(
     parse_file(
         file_path.clone(),
         label_map,
+        subroutine_lookup_table_entries,
         label_address,
         macros,
         included_files,
@@ -664,6 +670,7 @@ fn parse_macro_invocation(
     r#macro: Macro,
     lexer: &mut Lexer<Token>,
     label_map: &mut HashMap<String, u16>,
+    subroutine_lookup_table_entries: &mut Vec<String>,
     label_address: &mut u16,
     macros: &mut HashMap<String, Macro>,
     included_files: &mut HashSet<String>,
@@ -702,6 +709,7 @@ fn parse_macro_invocation(
                     identifier,
                     &mut macro_lexer,
                     label_map,
+                    subroutine_lookup_table_entries,
                     label_address,
                     macros,
                     included_files,
@@ -727,4 +735,36 @@ fn parse_macro_invocation(
     }
 
     Ok(statements)
+}
+
+fn build_slt(
+    label_map: &HashMap<String, u16>,
+    subroutine_lookup_table_entries: &Vec<String>,
+) -> Result<Vec<u16>, AssemblerError> {
+    if subroutine_lookup_table_entries.len() > 4096 {
+        return Err(AssemblerError::new(
+            format!(
+                "A maximum of 4096 subroutines allowed in a program - found {}",
+                subroutine_lookup_table_entries.len()
+            ),
+            Vec::new(),
+        ));
+    }
+
+    let mut out: Vec<u16> = Vec::new();
+
+    // Emit the size of the SLT so the executor can skip it
+    out.push(subroutine_lookup_table_entries.len() as u16);
+
+    for subroutine in subroutine_lookup_table_entries {
+        out.push(
+            // Ignore missing label error here - we catch it when assembling the call instruction so that we have backtrace information
+            *label_map.get(subroutine).unwrap_or(&0)
+                + subroutine_lookup_table_entries.len() as u16 // Account for the size of the SLT
+                + 1 // Account for the branch instruction before the SLT
+                - 1, // Account for the PC incrementing after we jump to this address
+        );
+    }
+
+    Ok(out)
 }
