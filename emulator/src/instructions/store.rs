@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Formatter, Result as FormatResult};
+use std::{
+    fmt::{Debug, Formatter, Result as FormatResult},
+    io::{self, Write},
+};
 
 use crate::{decode_signed_integer, state::State};
 
@@ -33,6 +36,7 @@ impl Instruction for Store {
                     "{}",
                     String::from_utf8(vec![state.registers[self.source_register as usize] as u8]).unwrap()
                 );
+                io::stdout().flush().unwrap();
             }
             _ => state.memory[address as usize] = state.registers[self.source_register as usize],
         }
