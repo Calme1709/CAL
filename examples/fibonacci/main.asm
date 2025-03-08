@@ -8,6 +8,9 @@ INCLUDE_ONCE "../_shared/stdio.asm"
 .MAIN
     CALL .INIT_STACK
 
+    LEA R0 .STRING_1
+    CALL .STDOUT_WRITE
+
     LEA R0 .INPUT_NUMBER
     LDI R1 #8 
     CALL .STDIN_READ
@@ -26,7 +29,7 @@ INCLUDE_ONCE "../_shared/stdio.asm"
 
     MOV R2 R0
 
-    LEA R0 .STRING_1
+    LEA R0 .STRING_2
     CALL .STDOUT_WRITE
 
     MOV R0 R1
@@ -38,7 +41,7 @@ INCLUDE_ONCE "../_shared/stdio.asm"
     CALL .GET_NUMBER_SUFFIX
     CALL .STDOUT_WRITE
 
-    LEA R0 .STRING_2
+    LEA R0 .STRING_3
     CALL .STDOUT_WRITE
 
     MOV R0 R2
@@ -160,8 +163,9 @@ INCLUDE_ONCE "../_shared/stdio.asm"
 
     RET
 
-.STRING_1 ASCII "The "
-.STRING_2 ASCII " fibonacci number is: "
+.STRING_1 ASCII "Input the index for the fibonacci number that you would like computed: "
+.STRING_2 ASCII "The "
+.STRING_3 ASCII " fibonacci number is: "
 
 .NUMBER_SUFFIX_ST ASCII "st"
 .NUMBER_SUFFIX_ND ASCII "nd"
